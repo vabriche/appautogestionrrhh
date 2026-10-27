@@ -1,0 +1,23 @@
+@import "tailwindcss";
+@import "@heroui/styles"; 
+
+@theme {
+  --color-fce-maroon-dark:   #5C1420;  /* rojo oscuro del degradé del hero */
+  --color-fce-maroon:        #7A1F2D;  /* bordó principal — navbar, logo */
+  --color-fce-maroon-mid:    #922A38;  /* bordó medio — hovers, botones */
+  --color-fce-red-soft:      #A8434C;  /* rojo suave — degradé, overlays */
+  --color-fce-gold:          #C9A227;  /* dorado — línea de acento bajo títulos */
+  --color-fce-cream:         #E9E1CB;  /* crema del header */
+  --color-fce-cream-light:   #F3EEDD;  /* crema claro — fondos secundarios */
+  --color-fce-white:         #FFFFFF;  /* blanco — texto sobre bordó, cards */
+  --color-fce-text-dark:     #2B2B2B;  /* gris casi negro — texto del logo/menú */
+}
+
+html,
+body {
+  margin: 0;
+  padding: 0;
+  min-height: 100dvh;
+  background-color: #F3EEDD; /* --color-fce-cream-light, evita el negro en los bordes */
+}
+
