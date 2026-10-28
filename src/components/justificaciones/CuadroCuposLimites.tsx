@@ -18,7 +18,7 @@ export const CuadroCuposLimites: React.FC<CuadroCuposLimitesProps> = ({ reglaAct
       </div>
       <ul className="space-y-1.5 text-xs text-gray-700 pl-6 list-disc">
         <li className={reglaActiva?.tipo === "RAZONES_PARTICULARES" ? "font-bold text-fce-maroon" : ""}>
-          <span className="font-semibold">Razones particulares:</span> 6 días al año (máx. 2 por mes)
+          <span className="font-semibold">Razones particulares con goce:</span> 6 días al año (máx. 2 por mes)
         </li>
         <li className={reglaActiva?.tipo === "EXCEPCIONALES" ? "font-bold text-fce-maroon" : ""}>
           <span className="font-semibold">Excepcionales (Art. 102):</span> 5 días al año (máx. 2 por mes)

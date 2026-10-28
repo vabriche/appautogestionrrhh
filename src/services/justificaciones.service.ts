@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_rethrow } from "next/navigation";
 import { api } from "@/lib/api";
 import { API_URL, AUTH_COOKIE } from "@/lib/config";
 import { cookies } from "next/headers";
@@ -22,6 +23,7 @@ export const justificacionesService = {
       }
       return parsed.data;
     } catch (error) {
+      unstable_rethrow(error);
       console.error("Error en getMotivos:", error);
       return [];
     }
@@ -40,6 +42,7 @@ export const justificacionesService = {
       }
       return parsed.data;
     } catch (error) {
+      unstable_rethrow(error);
       console.error("Error en getMisSolicitudes:", error);
       return [];
     }
@@ -56,6 +59,7 @@ export const justificacionesService = {
       }
       return parsed.data;
     } catch (error) {
+      unstable_rethrow(error);
       console.error("Error en getSolicitudesPorArea:", error);
       return [];
     }
@@ -66,6 +70,7 @@ export const justificacionesService = {
       const rows = await api.get<string[]>("/solicitudes/areas");
       return Array.isArray(rows) ? rows : [];
     } catch (error) {
+      unstable_rethrow(error);
       console.error("Error en getAreas:", error);
       return [];
     }
@@ -86,6 +91,7 @@ export const justificacionesService = {
       }
       return { ok: false };
     } catch (error: any) {
+      unstable_rethrow(error);
       console.error("Error en crearSolicitud:", error);
       return { ok: false, error: error?.message || "Error al crear la solicitud" };
     }
@@ -99,6 +105,7 @@ export const justificacionesService = {
       await api.put(`/solicitudes/justificacion/${id}`, payload);
       return { ok: true };
     } catch (error: any) {
+      unstable_rethrow(error);
       console.error("Error en actualizarSolicitud:", error);
       return {
         ok: false,
@@ -120,6 +127,7 @@ export const justificacionesService = {
       });
       return res.ok;
     } catch (error) {
+      unstable_rethrow(error);
       console.error("Error al subir documento:", error);
       return false;
     }

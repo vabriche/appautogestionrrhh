@@ -6,7 +6,7 @@ import React, { useEffect, useState, useRef } from "react";
 import { IoMdMenu } from "react-icons/io";
 import { MdVpnKey, MdLogout, MdPerson } from "react-icons/md";
 import Sidebar from "./Sidebar";
-import ChangePasswordModal from "../auth/ChangePasswordModal";
+import { ChangePasswordModal } from "../auth/ChangePasswordModal";
 import { AlertaSalidaModal } from "../asistencia/AlertaSalidaModal";
 import { Button } from "@heroui/react";
 import { logoutAction, getAuthUserAction } from "@/controllers/auth.controller";
@@ -18,8 +18,7 @@ const Header = () => {
   const pathname = usePathname();
   const [isSideBarOpen, setIsSideBarOpen] = useState<boolean>(false);
   const [isUserMenuOpen, setIsUserMenuOpen] = useState<boolean>(false);
-  const [isPasswordModalOpen, setIsPasswordModalOpen] =
-    useState<boolean>(false);
+  const [isPasswordModalOpen, setIsPasswordModalOpen] = useState<boolean>(false);
   const [user, setUser] = useState<AuthUser | null>(null);
   const [alertaSalida, setAlertaSalida] = useState<{
     isOpen: boolean;
@@ -28,13 +27,21 @@ const Header = () => {
   }>({ isOpen: false });
 
   const userMenuRef = useRef<HTMLDivElement>(null);
+  const alertaCheckedRef = useRef(false);
 
-  // Cargar usuario autenticado y verificar alerta de salida pendiente
+  // Cargar usuario autenticado y verificar alerta de salida (una sola vez por sesión)
   useEffect(() => {
-    if (pathname !== "/login") {
+    if (pathname === "/login") {
+      setUser(null);
+      alertaCheckedRef.current = false;
+      return;
+    }
+
+    if (!user) {
       getAuthUserAction().then(async (u) => {
         setUser(u);
-        if (u?.legajo) {
+        if (u?.legajo && !alertaCheckedRef.current) {
+          alertaCheckedRef.current = true;
           const resAlerta = await getAlertaSalidaAction();
           if (resAlerta?.alertaOlvidoSalida && resAlerta.fecha) {
             const storageKey = `alerta_salida_vista_${u.legajo}_${resAlerta.fecha}`;
@@ -50,7 +57,7 @@ const Header = () => {
         }
       });
     }
-  }, [pathname]);
+  }, [pathname, user]);
 
   // Cerrar menús al cambiar de ruta
   useEffect(() => {
@@ -87,7 +94,6 @@ const Header = () => {
     router.refresh();
   };
 
-
   return (
     <>
       {/* Sidebar y backdrop */}
@@ -114,7 +120,7 @@ const Header = () => {
           onPress={() => setIsSideBarOpen(true)}
           isIconOnly
           aria-label="Abrir menú"
-          className="bg-transparent text-white hover:bg-white/10 w-12 h-12 rounded-xl transition-colors"
+          className="bg-transparent text-white hover:bg-white/10 w-12 h-12 rounded-xl transition-colors cursor-pointer"
         >
           <IoMdMenu size={30} />
         </Button>
@@ -141,7 +147,7 @@ const Header = () => {
           />
         </button>
 
-        {/* Acciones del lado derecho: Home + Dropdown de Usuario */}
+        {/* Acciones del lado derecho: Dropdown de Usuario */}
         <div className="flex items-center gap-3">
           {/* Menú de Usuario desplegable */}
           <div className="relative" ref={userMenuRef}>
@@ -150,7 +156,7 @@ const Header = () => {
               aria-label="Menú de usuario"
               aria-expanded={isUserMenuOpen}
               onPress={() => setIsUserMenuOpen((prev) => !prev)}
-              className={`rounded-full w-12 h-12 transition-all flex items-center justify-center  ${
+              className={`rounded-full w-12 h-12 transition-all flex items-center justify-center cursor-pointer ${
                 isUserMenuOpen
                   ? "bg-fce-cream-light text-fce-maroon shadow-md scale-105"
                   : "bg-fce-maroon-mid text-white border-fce-gold/50 hover:border-fce-gold"

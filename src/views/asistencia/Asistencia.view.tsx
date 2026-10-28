@@ -1,9 +1,19 @@
 "use client";
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
-import { getAuthUserAction, getRegistrosAsistenciaAction, getInasistenciasAnualesAction, getInasistenciasDetalleAction } from "@/controllers";
+import {
+  getAuthUserAction,
+  getRegistrosAsistenciaAction,
+  getInasistenciasAnualesAction,
+  getInasistenciasDetalleAction,
+} from "@/controllers";
 import type { AuthUser, RegistroAsistencia, InasistenciaRes, InasistenciaDetalle } from "@/models";
-import { AsistenciaHeader, AsistenciaFilters, AsistenciaTable, AsistenciaInasistencias } from "@/components/asistencia";
+import {
+  AsistenciaHeader,
+  AsistenciaFilters,
+  AsistenciaTable,
+  AsistenciaInasistencias,
+} from "@/components/asistencia";
 import { horasADecimal } from "@/lib/horas";
 
 const AsistenciaView = () => {
@@ -46,6 +56,18 @@ const AsistenciaView = () => {
     });
   }, []);
 
+  // Año consultado dinámico basado en la fecha de inicio del filtro
+  const anioConsultado = useMemo(() => {
+    if (fechaInicio) {
+      const parts = fechaInicio.split("-");
+      if (parts[0] && parts[0].length === 4) {
+        const parsed = parseInt(parts[0], 10);
+        if (!isNaN(parsed)) return parsed;
+      }
+    }
+    return currentYear;
+  }, [fechaInicio, currentYear]);
+
   const fetchRegistros = useCallback(async () => {
     if (!user) return;
     setLoading(true);
@@ -53,7 +75,7 @@ const AsistenciaView = () => {
     try {
       const [data, inasistData, inasistDetalle] = await Promise.all([
         getRegistrosAsistenciaAction(fechaInicio, fechaFin),
-        getInasistenciasAnualesAction(currentYear),
+        getInasistenciasAnualesAction(anioConsultado),
         getInasistenciasDetalleAction(fechaInicio, fechaFin),
       ]);
       setRegistros(data);
@@ -65,25 +87,37 @@ const AsistenciaView = () => {
     } finally {
       setLoading(false);
     }
-  }, [user, fechaInicio, fechaFin, currentYear]);
+  }, [user, fechaInicio, fechaFin, anioConsultado]);
 
   useEffect(() => {
     fetchRegistros();
   }, [fetchRegistros]);
 
-//  const totalHoras = useMemo(() => {
-//    return registros.reduce((acc, curr) => acc + (curr.horasT || 0), 0).toFixed(2);
-//  }, [registros]);
-  
   const totalHoras = useMemo(() => {
-  return registros
-    .reduce((acc, curr) => acc + horasADecimal(curr.horasT), 0)
-    .toFixed(2);
-}, [registros]);
+    return registros
+      .reduce((acc, curr) => acc + horasADecimal(curr.horasT), 0)
+      .toFixed(2);
+  }, [registros]);
 
   const diasTrabajados = useMemo(() => {
     const unicas = new Set(registros.map((r) => r.fecha));
     return unicas.size;
+  }, [registros]);
+
+  // Promedio de horas calculado sobre registros válidos de entrada y salida
+  const { promedioHoras, cantDiasValidos } = useMemo(() => {
+    const validos = registros.filter(
+      (r) =>
+        r.Hentrada &&
+        String(r.Hentrada).trim() !== "" &&
+        r.Hsalida &&
+        String(r.Hsalida).trim() !== "" &&
+        horasADecimal(r.horasT) > 0
+    );
+    if (validos.length === 0) return { promedioHoras: "0.00", cantDiasValidos: 0 };
+    const suma = validos.reduce((acc, curr) => acc + horasADecimal(curr.horasT), 0);
+    const prom = (suma / validos.length).toFixed(2);
+    return { promedioHoras: prom, cantDiasValidos: validos.length };
   }, [registros]);
 
   if (!mounted) return null;
@@ -102,8 +136,11 @@ const AsistenciaView = () => {
               setFechaFin={setFechaFin}
               diasTrabajados={diasTrabajados}
               totalHoras={totalHoras}
+              promedioHoras={promedioHoras}
+              cantDiasValidos={cantDiasValidos}
               inasistencias={inasistencias}
               currentYear={currentYear}
+              anioConsultado={anioConsultado}
             />
           </div>
 
@@ -116,7 +153,7 @@ const AsistenciaView = () => {
               loading={loading}
               error={error}
             />
-            
+
             <AsistenciaInasistencias
               inasistencias={inasistenciasDetalle}
               loading={loading}

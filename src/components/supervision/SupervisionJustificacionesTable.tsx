@@ -3,6 +3,7 @@
 import React from "react";
 import type { SolicitudJustificacion } from "@/models";
 import { API_URL } from "@/lib/config";
+import { OBTENER_LABEL_MOTIVO } from "@/constants";
 import { requiereDocumentoJustificativo } from "@/lib/motivosDoc";
 
 interface SupervisionJustificacionesTableProps {
@@ -64,7 +65,7 @@ export const SupervisionJustificacionesTable: React.FC<
                 {sol.tipo === "I" ? "Inasistencia" : "Licencia"}
               </td>
               <td className="px-4 py-3 text-gray-600 min-w-[150px]">
-                {sol.motivoDesc || sol.codina}
+                {OBTENER_LABEL_MOTIVO(sol.codina) || sol.motivoDesc || sol.codina}
               </td>
               <td className="px-4 py-3 text-gray-600 min-w-[140px]">
                 {sol.fecha_inicio ? (
@@ -117,7 +118,7 @@ export const SupervisionJustificacionesTable: React.FC<
                   >
                     Ver
                   </a>
-                ) : requiereDocumentoJustificativo(sol.motivoDesc || sol.codina) ? (
+                ) : requiereDocumentoJustificativo(sol.motivoDesc, sol.codina) ? (
                   <span
                     className="inline-flex items-center text-xs text-red-700 bg-red-50 border border-red-200 px-2 py-0.5 rounded font-medium whitespace-nowrap"
                     title="Comprobante obligatorio pendiente de entrega"
@@ -141,7 +142,7 @@ export const SupervisionJustificacionesTable: React.FC<
               </td>
               <td className="px-4 py-3 text-center space-x-2">
                 {sol.estado === "P" && (() => {
-                  const necesitaDoc = requiereDocumentoJustificativo(sol.motivoDesc || sol.codina);
+                  const necesitaDoc = requiereDocumentoJustificativo(sol.motivoDesc, sol.codina);
                   const faltaDoc = necesitaDoc && !sol.documento;
 
                   return (

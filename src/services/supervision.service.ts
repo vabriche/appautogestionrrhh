@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_rethrow } from "next/navigation";
 import { api } from "@/lib/api";
 import { SupervisionRegistroSchema, type SupervisionRegistro } from "@/models";
 import { z } from "zod";
@@ -25,6 +26,7 @@ export const supervisionService = {
       }
       return parsed.data;
     } catch (error) {
+      unstable_rethrow(error);
       console.error("Error en getRegistrosArea:", error);
       return [];
     }

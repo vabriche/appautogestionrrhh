@@ -3,6 +3,7 @@
 import React from "react";
 import type { SolicitudJustificacion } from "@/models";
 import { API_URL } from "@/lib/config";
+import { OBTENER_LABEL_MOTIVO } from "@/constants";
 import { requiereDocumentoJustificativo } from "@/lib/motivosDoc";
 
 interface MisSolicitudesTableProps {
@@ -107,7 +108,9 @@ export const MisSolicitudesTable: React.FC<MisSolicitudesTableProps> = ({
               <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
                 {sol.tipo === "I" ? "Inasistencia" : "Licencia"}
               </td>
-              <td className="px-4 py-3 text-gray-600 min-w-[150px]">{sol.motivoDesc || sol.codina}</td>
+              <td className="px-4 py-3 text-gray-600 min-w-[150px]">
+                {OBTENER_LABEL_MOTIVO(sol.codina) || sol.motivoDesc || sol.codina}
+              </td>
               <td className="px-4 py-3 text-gray-600 min-w-[140px]">
                 {sol.fecha_inicio ? (
                   <div className="space-y-0.5">
@@ -177,7 +180,7 @@ export const MisSolicitudesTable: React.FC<MisSolicitudesTableProps> = ({
                   >
                     Ver
                   </a>
-                ) : requiereDocumentoJustificativo(sol.motivoDesc || sol.codina) ? (
+                ) : requiereDocumentoJustificativo(sol.motivoDesc, sol.codina) ? (
                   sol.estado === "P" ? (
                     <label className="cursor-pointer text-fce-gold hover:text-yellow-600 font-medium text-xs underline">
                       Subir Doc

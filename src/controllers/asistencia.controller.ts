@@ -2,7 +2,7 @@
 
 import { AsistenciaService } from "@/services";
 import { getAuthUserAction } from "./auth.controller";
-import { RegistroAsistencia } from "@/models";
+import type { RegistroAsistencia, MarcarAsistenciaVirtualResult } from "@/models";
 
 export async function getRegistrosAsistenciaAction(
   fechaInicio: string,
@@ -91,6 +91,45 @@ export async function getAlertaSalidaAction(): Promise<{
   } catch (error) {
     console.error("Error en getAlertaSalidaAction:", error);
     return { alertaOlvidoSalida: false };
+  }
+}
+
+export async function getAsistenciaVirtualEstadoAction() {
+  try {
+    const user = await getAuthUserAction();
+    if (!user || !user.legajo) {
+      throw new Error("Usuario no autenticado");
+    }
+    return await AsistenciaService.getAsistenciaVirtualEstado(user.legajo);
+  } catch (error: any) {
+    console.error("Error en getAsistenciaVirtualEstadoAction:", error);
+    return {
+      esPeriodoHabilitado: false,
+      esPeriodoReal: false,
+      fechaHoy: new Date().toISOString().split("T")[0],
+      horaActual: "00:00:00",
+      estado: "FUERA_DE_TURNO" as const,
+      ultimoRegistro: null,
+      minutosDesdeEntrada: null,
+      puedeMarcarSalida: true,
+      registrosHoy: [],
+    };
+  }
+}
+
+export async function marcarAsistenciaVirtualAction(): Promise<MarcarAsistenciaVirtualResult> {
+  try {
+    const user = await getAuthUserAction();
+    if (!user || !user.legajo) {
+      return { success: false, error: "Usuario no autenticado" };
+    }
+    return await AsistenciaService.marcarAsistenciaVirtual(user.legajo);
+  } catch (error: any) {
+    console.error("Error en marcarAsistenciaVirtualAction:", error);
+    return {
+      success: false,
+      error: error?.message || "No se pudo registrar la asistencia virtual",
+    };
   }
 }
 

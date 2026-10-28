@@ -1,5 +1,11 @@
+import { unstable_rethrow } from "next/navigation";
 import { api } from "@/lib/api";
-import { RegistroAsistencia, RegistroAsistenciaSchema } from "@/models";
+import {
+  RegistroAsistencia,
+  RegistroAsistenciaSchema,
+  AsistenciaVirtualEstado,
+  MarcarAsistenciaVirtualResult,
+} from "@/models";
 import { z } from "zod";
 
 export class AsistenciaService {
@@ -31,6 +37,7 @@ export class AsistenciaService {
       // la validación estricta a veces falla por nulos inesperados del backend
       return Array.isArray(response) ? response : [];
     } catch (error) {
+      unstable_rethrow(error);
       console.error("Error obteniendo registros de asistencia:", error);
       return [];
     }
@@ -50,6 +57,7 @@ export class AsistenciaService {
       );
       return Array.isArray(response) ? response : [];
     } catch (error) {
+      unstable_rethrow(error);
       console.error("Error obteniendo inasistencias:", error);
       return [];
     }
@@ -69,6 +77,7 @@ export class AsistenciaService {
       );
       return Array.isArray(response) ? response : [];
     } catch (error) {
+      unstable_rethrow(error);
       console.error("Error obteniendo inasistencias detalle:", error);
       return [];
     }
@@ -96,8 +105,59 @@ export class AsistenciaService {
       }>(`/biometrico/alerta_salida/${legajo}`);
       return response || { alertaOlvidoSalida: false };
     } catch (error) {
+      unstable_rethrow(error);
       console.error("Error obteniendo alerta de salida:", error);
       return { alertaOlvidoSalida: false };
+    }
+  }
+
+  /**
+   * Obtiene el estado actual de marcación virtual para hoy (período de vacaciones 21 Dic - 1 Feb).
+   */
+  static async getAsistenciaVirtualEstado(
+    legajo: string | number
+  ): Promise<AsistenciaVirtualEstado> {
+    try {
+      const response = await api.get<AsistenciaVirtualEstado>(
+        `/biometrico/asistencia_virtual/estado/${legajo}`
+      );
+      return response;
+    } catch (error) {
+      unstable_rethrow(error);
+      console.error("Error obteniendo estado de asistencia virtual:", error);
+      return {
+        esPeriodoHabilitado: false,
+        esPeriodoReal: false,
+        fechaHoy: new Date().toISOString().split("T")[0],
+        horaActual: "00:00:00",
+        estado: "FUERA_DE_TURNO",
+        ultimoRegistro: null,
+        minutosDesdeEntrada: null,
+        puedeMarcarSalida: true,
+        registrosHoy: [],
+      };
+    }
+  }
+
+  /**
+   * Registra una marcación virtual de entrada o salida.
+   */
+  static async marcarAsistenciaVirtual(
+    legajo: string | number
+  ): Promise<MarcarAsistenciaVirtualResult> {
+    try {
+      const response = await api.post<MarcarAsistenciaVirtualResult>(
+        "/biometrico/asistencia_virtual/marcar",
+        { legajo }
+      );
+      return response;
+    } catch (error: any) {
+      unstable_rethrow(error);
+      console.error("Error al marcar asistencia virtual:", error);
+      return {
+        success: false,
+        error: error?.message || "No se pudo registrar la asistencia virtual",
+      };
     }
   }
 }

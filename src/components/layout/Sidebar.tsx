@@ -46,7 +46,10 @@ const navDropdowns: NavDropdownSection[] = [
     id: "asistencia",
     name: "Asistencia",
     icon: <MdAccessTime size={18} />,
-    items: [{ name: "Ver Registros", path: "/asistencia" }],
+    items: [
+      { name: "Ver Registros", path: "/asistencia" },
+      { name: "Asistencia Virtual", path: "/asistencia/virtual" },
+    ],
   },
   {
     id: "tramites",

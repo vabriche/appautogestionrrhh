@@ -1,6 +1,10 @@
+import React, { Suspense } from "react";
 import AsistenciaView from "@/views/asistencia/Asistencia.view";
-import React from "react";
 
 export default function AsistenciaPage() {
-  return <AsistenciaView />;
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-500">Cargando asistencia...</div>}>
+      <AsistenciaView />
+    </Suspense>
+  );
 }

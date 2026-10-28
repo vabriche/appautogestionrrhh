@@ -1,3 +1,5 @@
+import { MOTIVOS_HABILITADOS } from "@/constants/motivosHabilitados";
+
 /**
  * Categorías de motivos que requieren un justificativo de archivo adjunto.
  */
@@ -15,17 +17,22 @@ export const CATEGORIAS_CON_JUSTIFICATIVO = [
   "Por matrimonio",
   "Por matrimonio de un hijo",
 
-  // Nombres exactos de la base de datos (tabla motina):
+  // Nombres exactos de la base de datos (tabla motina) y motivos habilitados:
   "Congresos",
   "Donación sangre",
+  "Donación de Sangre",
   "Estudio",
   "Mesa examinadora",
+  "Mesa Examinadora",
   "Trámites",
   "Nacimiento",
   "Fallecimiento",
   "Actividad deportiva",
+  "Actividad Deportiva",
   "Matrimonio",
-  "Permiso particular",
+  "Licencia Extraordinaria 25",
+  "Licencia extraordinaria 25",
+  "Sindical",
 ];
 
 const normalizar = (texto: string): string =>
@@ -37,15 +44,46 @@ const normalizar = (texto: string): string =>
 
 /**
  * Determina si un motivo dado requiere documento adjunto obligatorio/probatorio.
- * Contempla tanto los nombres largos oficiales como las abreviaturas de la tabla motina.
+ * Contempla tanto los nombres largos oficiales como las abreviaturas de la tabla motina
+ * y el listado de 15 motivos habilitados.
  */
 export const requiereDocumentoJustificativo = (
-  motivoTexto?: string | number | null
+  motivoTexto?: string | number | null,
+  codina?: number | string | null
 ): boolean => {
+  // 1. Verificación por codina explícito o si motivoTexto es un codina numérico
+  const codVal =
+    codina !== undefined && codina !== null && String(codina).trim() !== ""
+      ? Number(codina)
+      : typeof motivoTexto === "number" ||
+        (typeof motivoTexto === "string" && /^\d+$/.test(motivoTexto.trim()))
+      ? Number(motivoTexto)
+      : null;
+
+  if (codVal !== null && !isNaN(codVal)) {
+    const found = MOTIVOS_HABILITADOS.find((m) => m.codina === codVal);
+    if (found) {
+      return found.requiereDoc;
+    }
+  }
+
   if (!motivoTexto) return false;
   const norm = normalizar(String(motivoTexto));
 
-  // 1. Verificación contra las 11 categorías oficiales
+  // Exclusiones explícitas (no requieren documento probatorio)
+  if (
+    norm.includes("sin goce") ||
+    norm.includes("con goce") ||
+    norm.includes("razones particulares") ||
+    norm.includes("razon particular") ||
+    norm.includes("compensacion") ||
+    norm.includes("102") ||
+    norm.includes("excepcional")
+  ) {
+    return false;
+  }
+
+  // 2. Verificación contra las categorías oficiales y nombres de motina
   for (const cat of CATEGORIAS_CON_JUSTIFICATIVO) {
     const catNorm = normalizar(cat);
     if (norm === catNorm || norm.includes(catNorm) || catNorm.includes(norm)) {
@@ -53,7 +91,7 @@ export const requiereDocumentoJustificativo = (
     }
   }
 
-  // 2. Verificación por palabras clave de compatibilidad con motina
+  // 3. Verificación por palabras clave de compatibilidad con motina
   const keywords = [
     "congreso",
     "simposio",
@@ -75,6 +113,8 @@ export const requiereDocumentoJustificativo = (
     "actividades deportivas",
     "artistica",
     "matrimonio",
+    "sindical",
+    "licencia extraordinaria",
   ];
 
   return keywords.some((kw) => norm.includes(kw));

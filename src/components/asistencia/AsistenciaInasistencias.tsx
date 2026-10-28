@@ -31,7 +31,7 @@ export const AsistenciaInasistencias: React.FC<AsistenciaInasistenciasProps> = (
     <div className="bg-white rounded-xl shadow-sm border border-fce-gold/25 overflow-hidden flex flex-col mt-6">
       <div className="px-6 py-5 border-b border-gray-100">
         <h3 className="text-lg font-bold text-gray-900">
-          Detalle de Licencias / Inasistencias
+          Detalle de Justificaciones / Inasistencias
         </h3>
       </div>
 

@@ -1,18 +1,11 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import {
-  MdLock,
-  MdLockOutline,
-  MdVisibility,
-  MdVisibilityOff,
-  MdClose,
-  MdVpnKey,
-} from "react-icons/md";
+import { MdLock, MdLockOutline, MdClose, MdVpnKey } from "react-icons/md";
 import { FaRegUser } from "react-icons/fa";
 import { Button, Spinner } from "@heroui/react";
 import { changePasswordAction } from "@/controllers/auth.controller";
-import { showToast, FeedbackAlert } from "@/components/ui";
+import { showToast, FeedbackAlert, PasswordInput } from "@/components/ui";
 
 interface ChangePasswordModalProps {
   isOpen: boolean;
@@ -41,10 +34,6 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
-  const [showCurrentPassword, setShowCurrentPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
-
   const [isPending, setIsPending] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -61,9 +50,6 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
       setCurrentPassword("");
       setNewPassword("");
       setConfirmPassword("");
-      setShowCurrentPassword(false);
-      setShowNewPassword(false);
-      setShowConfirmPassword(false);
       setErrorMessage(null);
       setSuccessMessage(null);
     }
@@ -87,40 +73,28 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
     setErrorMessage(null);
     setSuccessMessage(null);
 
-    const legajoStr = String(legajo ?? "").trim();
-
-    if (!legajoStr) {
-      const msg = "Por favor, ingresá tu legajo.";
-      setErrorMessage(msg);
-      showToast(msg, "warning");
+    if (!legajo.trim()) {
+      setErrorMessage("Por favor, ingresá tu legajo.");
       return;
     }
-
     if (!currentPassword) {
-      const msg = "Por favor, ingresá tu contraseña actual.";
-      setErrorMessage(msg);
-      showToast(msg, "warning");
+      setErrorMessage("Por favor, ingresá tu contraseña actual.");
       return;
     }
-
-    if (newPassword.length < 4) {
-      const msg = "La nueva contraseña debe tener al menos 4 caracteres.";
-      setErrorMessage(msg);
-      showToast(msg, "warning");
+    if (!newPassword) {
+      setErrorMessage("Por favor, ingresá la nueva contraseña.");
       return;
     }
-
-    if (newPassword === currentPassword) {
-      const msg = "La nueva contraseña no puede ser igual a la actual.";
-      setErrorMessage(msg);
-      showToast(msg, "warning");
+    if (newPassword.length < 6) {
+      setErrorMessage("La nueva contraseña debe tener al menos 6 caracteres.");
       return;
     }
-
     if (newPassword !== confirmPassword) {
-      const msg = "Las contraseñas no coinciden.";
-      setErrorMessage(msg);
-      showToast(msg, "danger");
+      setErrorMessage("Las nuevas contraseñas no coinciden.");
+      return;
+    }
+    if (currentPassword === newPassword) {
+      setErrorMessage("La nueva contraseña no puede ser igual a la actual.");
       return;
     }
 
@@ -129,103 +103,105 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
     try {
       if (onSubmit) {
         const result = await onSubmit({
-          legajo: legajoStr,
+          legajo: legajo.trim(),
           currentPassword,
           newPassword,
           confirmPassword,
         });
-
-        if (result?.success) {
-          const msg =
-            result.message ?? "¡Contraseña actualizada con éxito!";
-          showToast(msg, "success");
-          onClose();
+        if (result.success) {
+          setSuccessMessage(
+            result.message || "Contraseña cambiada con éxito.",
+          );
+          showToast(
+            result.message || "Contraseña actualizada exitosamente",
+            "success",
+          );
+          setTimeout(() => {
+            onClose();
+          }, 1500);
         } else {
-          const msg =
-            result?.message ?? "No se pudo actualizar la contraseña.";
-          setErrorMessage(msg);
-          showToast(msg, "danger");
+          setErrorMessage(
+            result.message || "No se pudo actualizar la contraseña.",
+          );
         }
       } else {
-        // Conexión directa con la Server Action del backend (POST /biometrico/changepass)
-        const result = await changePasswordAction({
-          legajo: legajoStr,
+        const res = await changePasswordAction({
+          legajo: legajo.trim(),
           passwold: currentPassword,
           passnew: newPassword,
         });
 
-        if (result.ok) {
-          showToast("¡Contraseña actualizada con éxito!", "success");
-          onClose();
+        if (res.ok) {
+          setSuccessMessage("Contraseña actualizada con éxito.");
+          showToast("Contraseña actualizada exitosamente", "success");
+          setTimeout(() => {
+            onClose();
+          }, 1500);
         } else {
-          const errorMsg = result.error || "No se pudo actualizar la contraseña.";
-          setErrorMessage(errorMsg);
-          showToast(errorMsg, "danger");
+          setErrorMessage(res.error || "No se pudo actualizar la contraseña.");
         }
       }
-    } catch (err: unknown) {
-      const msg =
-        err instanceof Error
-          ? err.message
-          : "Ocurrió un error inesperado al cambiar la contraseña.";
-      setErrorMessage(msg);
-      showToast(msg, "danger");
+    } catch {
+      setErrorMessage("Ocurrió un error inesperado. Intentá de nuevo.");
     } finally {
       setIsPending(false);
     }
   };
 
-
   return (
     <div
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="modal-title"
-      className="fixed inset-0 z-[10000] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200"
+      className="fixed inset-0 z-[99999] flex items-center justify-center p-4 bg-black/50 backdrop-blur-xs animate-in fade-in duration-150"
       onClick={(e) => {
-        if (e.target === e.currentTarget && !isPending) onClose();
+        if (e.target === e.currentTarget && !isPending) {
+          onClose();
+        }
       }}
     >
-      <div className="w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden border border-fce-gold/40 animate-in zoom-in-95 duration-200">
+      <div
+        className="w-full max-w-md bg-white rounded-2xl shadow-2xl border border-fce-gold/30 overflow-hidden animate-in zoom-in-95 duration-150"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="modal-title"
+      >
         {/* Cabecera */}
-        <div className="bg-fce-maroon px-6 py-5 border-b-4 border-fce-gold flex items-center justify-between text-white">
-          <div className="flex items-center gap-3">
-            <div className="p-2 bg-fce-maroon-mid rounded-xl text-fce-gold">
-              <MdVpnKey size={22} />
-            </div>
-            <div>
-              <h2
-                id="modal-title"
-                className="text-lg font-semibold leading-tight"
-              >
-                Cambiar Contraseña
-              </h2>
-              <p className="text-xs text-fce-cream">
-                Actualizá las credenciales de tu cuenta
-              </p>
-            </div>
-          </div>
+        <div className="bg-gradient-to-r from-fce-maroon to-[#5c1722] p-6 text-white relative">
           <button
             type="button"
             onClick={onClose}
             disabled={isPending}
-            className="p-1.5 rounded-lg text-fce-cream hover:text-white hover:bg-white/10 transition-colors disabled:opacity-50"
+            className="absolute right-4 top-4 p-1.5 rounded-lg text-white/80 hover:text-white hover:bg-white/10 transition-colors cursor-pointer disabled:opacity-50"
             aria-label="Cerrar modal"
           >
             <MdClose size={20} />
           </button>
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 rounded-xl bg-white/10 text-fce-gold backdrop-blur-xs">
+              <MdVpnKey size={24} />
+            </div>
+            <div>
+              <h2 id="modal-title" className="text-lg font-bold tracking-tight">
+                Cambiar Contraseña
+              </h2>
+              <p className="text-xs text-white/80 mt-0.5">
+                Actualizá tus credenciales de acceso al sistema
+              </p>
+            </div>
+          </div>
         </div>
 
-        {/* Mensajes de feedback */}
+        {/* Alertas inline */}
         {errorMessage && (
-          <div className="mx-6 mt-4">
-            <FeedbackAlert message={errorMessage} type="danger" />
+          <div className="p-4 pb-0">
+            <FeedbackAlert
+              type="error"
+              message={errorMessage}
+              onDismiss={() => setErrorMessage(null)}
+            />
           </div>
         )}
-
         {successMessage && (
-          <div className="mx-6 mt-4">
-            <FeedbackAlert message={successMessage} type="success" />
+          <div className="p-4 pb-0">
+            <FeedbackAlert type="success" message={successMessage} />
           </div>
         )}
 
@@ -253,106 +229,36 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
             </div>
           </div>
 
-          {/* Contraseña Actual */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-              Contraseña Actual
-            </label>
-            <div className="relative">
-              <MdLock
-                size={17}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type={showCurrentPassword ? "text" : "password"}
-                value={currentPassword}
-                onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Tu contraseña actual"
-                required
-                disabled={isPending}
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800 focus:outline-none focus:border-fce-maroon focus:ring-2 focus:ring-fce-gold/40 transition-all disabled:opacity-60"
-              />
-              <button
-                type="button"
-                onClick={() => setShowCurrentPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-fce-maroon transition-colors"
-                aria-label={showCurrentPassword ? "Ocultar" : "Mostrar"}
-              >
-                {showCurrentPassword ? (
-                  <MdVisibilityOff size={18} />
-                ) : (
-                  <MdVisibility size={18} />
-                )}
-              </button>
-            </div>
-          </div>
+          <PasswordInput
+            label="Contraseña Actual"
+            value={currentPassword}
+            onChange={setCurrentPassword}
+            placeholder="Tu contraseña actual"
+            required
+            disabled={isPending}
+            icon={<MdLock size={17} />}
+          />
 
-          {/* Nueva Contraseña */}
-          <div>
-            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-              Nueva Contraseña
-            </label>
-            <div className="relative">
-              <MdLockOutline
-                size={17}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type={showNewPassword ? "text" : "password"}
-                value={newPassword}
-                onChange={(e) => setNewPassword(e.target.value)}
-                placeholder="Nueva contraseña"
-                required
-                disabled={isPending}
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800 focus:outline-none focus:border-fce-maroon focus:ring-2 focus:ring-fce-gold/40 transition-all disabled:opacity-60"
-              />
-              <button
-                type="button"
-                onClick={() => setShowNewPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-fce-maroon transition-colors"
-                aria-label={showNewPassword ? "Ocultar" : "Mostrar"}
-              >
-                {showNewPassword ? (
-                  <MdVisibilityOff size={18} />
-                ) : (
-                  <MdVisibility size={18} />
-                )}
-              </button>
-            </div>
-          </div>
+          <PasswordInput
+            label="Nueva Contraseña"
+            value={newPassword}
+            onChange={setNewPassword}
+            placeholder="Nueva contraseña (mínimo 6 caracteres)"
+            required
+            disabled={isPending}
+            icon={<MdLockOutline size={17} />}
+          />
 
-          {/* Confirmar Nueva Contraseña */}
           <div>
-            <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wider mb-1.5">
-              Confirmar Nueva Contraseña
-            </label>
-            <div className="relative">
-              <MdLockOutline
-                size={17}
-                className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400"
-              />
-              <input
-                type={showConfirmPassword ? "text" : "password"}
-                value={confirmPassword}
-                onChange={(e) => setConfirmPassword(e.target.value)}
-                placeholder="Repetí la nueva contraseña"
-                required
-                disabled={isPending}
-                className="w-full pl-10 pr-10 py-2.5 rounded-xl border border-gray-200 bg-gray-50 text-sm text-gray-800 focus:outline-none focus:border-fce-maroon focus:ring-2 focus:ring-fce-gold/40 transition-all disabled:opacity-60"
-              />
-              <button
-                type="button"
-                onClick={() => setShowConfirmPassword((prev) => !prev)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-fce-maroon transition-colors"
-                aria-label={showConfirmPassword ? "Ocultar" : "Mostrar"}
-              >
-                {showConfirmPassword ? (
-                  <MdVisibilityOff size={18} />
-                ) : (
-                  <MdVisibility size={18} />
-                )}
-              </button>
-            </div>
+            <PasswordInput
+              label="Confirmar Nueva Contraseña"
+              value={confirmPassword}
+              onChange={setConfirmPassword}
+              placeholder="Repetí la nueva contraseña"
+              required
+              disabled={isPending}
+              icon={<MdLockOutline size={17} />}
+            />
             {newPassword &&
               confirmPassword &&
               newPassword !== confirmPassword && (
@@ -363,31 +269,23 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
           </div>
 
           {/* Acciones del pie */}
-          <div className="flex gap-3 pt-3">
+          <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
             <Button
               type="button"
+              variant="outline"
               onPress={onClose}
               isDisabled={isPending}
-              className="flex-1 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium py-2.5 rounded-xl transition-colors"
+              className="px-4 py-2 text-xs font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-all cursor-pointer"
             >
               Cancelar
             </Button>
             <Button
               type="submit"
-              isDisabled={
-                isPending ||
-                (confirmPassword !== "" && newPassword !== confirmPassword)
-              }
-              className="flex-1 bg-fce-maroon hover:bg-fce-maroon-mid text-white font-medium py-2.5 rounded-xl shadow-md transition-all disabled:opacity-50 flex items-center justify-center gap-2 cursor-pointer"
+              isDisabled={isPending}
+              className="px-5 py-2 text-xs font-semibold text-white bg-fce-maroon hover:bg-[#601823] active:scale-98 rounded-xl shadow-md transition-all cursor-pointer flex items-center gap-2"
             >
-              {isPending ? (
-                <>
-                  <Spinner size="sm" color="current" />
-                  <span>Actualizando...</span>
-                </>
-              ) : (
-                "Actualizar"
-              )}
+              {isPending && <Spinner size="sm" color="current" />}
+              <span>{isPending ? "Actualizando..." : "Guardar Cambios"}</span>
             </Button>
           </div>
         </form>

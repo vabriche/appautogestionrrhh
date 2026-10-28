@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react";
 import type { Motivo } from "@/models";
 import { getMotivosAction, crearSolicitudAction } from "@/controllers/justificaciones.controller";
 import { showToast } from "@/components/ui";
+import { MOTIVOS_HABILITADOS } from "@/constants";
 import { requiereDocumentoJustificativo } from "@/lib/motivosDoc";
 import { obtenerReglaCupo } from "@/lib/limitesJustificaciones";
 import { CuadroCuposLimites } from "./CuadroCuposLimites";
@@ -43,8 +44,8 @@ export const CrearSolicitudForm: React.FC<CrearSolicitudFormProps> = ({ onSucces
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const motivoSeleccionado = motivos.find((m) => String(m.codina) === String(codina));
-  const exigeDoc = requiereDocumentoJustificativo(motivoSeleccionado?.Motivo);
-  const reglaActiva = obtenerReglaCupo(motivoSeleccionado?.Motivo);
+  const exigeDoc = requiereDocumentoJustificativo(motivoSeleccionado?.Motivo, codina);
+  const reglaActiva = obtenerReglaCupo(motivoSeleccionado?.Motivo, codina);
   const cantDias = calcularDias(fechaInicio, fechaFin);
 
   const errorLimiteCupo = (() => {
@@ -63,15 +64,29 @@ export const CrearSolicitudForm: React.FC<CrearSolicitudFormProps> = ({ onSucces
   }, []);
 
   const loadMotivos = async () => {
-    const data = await getMotivosAction();
-    setMotivos(data);
-    if (data.length > 0) setCodina(String(data[0].codina));
+    try {
+      await getMotivosAction();
+      // Mapear estrictamente los 15 motivos habilitados por la Dirección
+      const habilitados: Motivo[] = MOTIVOS_HABILITADOS.map((hab) => ({
+        codina: hab.codina,
+        Motivo: hab.label,
+      }));
+      setMotivos(habilitados);
+      if (habilitados.length > 0) setCodina(String(habilitados[0].codina));
+    } catch {
+      const fallback: Motivo[] = MOTIVOS_HABILITADOS.map((hab) => ({
+        codina: hab.codina,
+        Motivo: hab.label,
+      }));
+      setMotivos(fallback);
+      if (fallback.length > 0) setCodina(String(fallback[0].codina));
+    }
   };
 
   const handleMotivoChange = (nuevoCodina: string) => {
     setCodina(nuevoCodina);
     const mSel = motivos.find((m) => String(m.codina) === String(nuevoCodina));
-    if (!requiereDocumentoJustificativo(mSel?.Motivo)) {
+    if (!requiereDocumentoJustificativo(mSel?.Motivo, nuevoCodina)) {
       setFile(null);
     }
   };

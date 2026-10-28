@@ -1,11 +1,24 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useSearchParams } from "next/navigation";
 import { CrearSolicitudForm, MisSolicitudesList } from "@/components/justificaciones";
 
 export const JustificacionesView: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"crear" | "mis-solicitudes">("crear");
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+  const [activeTab, setActiveTab] = useState<"crear" | "mis-solicitudes">(
+    tabParam === "mis-solicitudes" ? "mis-solicitudes" : "crear"
+  );
   const [refreshCounter, setRefreshCounter] = useState(0);
+
+  useEffect(() => {
+    if (tabParam === "mis-solicitudes") {
+      setActiveTab("mis-solicitudes");
+    } else if (tabParam === "crear") {
+      setActiveTab("crear");
+    }
+  }, [tabParam]);
 
   const handleSuccess = () => {
     // Cuando la solicitud se crea con éxito, cambiamos de pestaña y recargamos

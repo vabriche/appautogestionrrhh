@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { JustificacionesView } from "@/views/justificaciones/Justificaciones.view";
 import { getAuthUserAction } from "@/controllers/auth.controller";
 import { redirect } from "next/navigation";
@@ -9,5 +10,9 @@ export default async function TramitesPage() {
     redirect("/login");
   }
 
-  return <JustificacionesView />;
+  return (
+    <Suspense fallback={<div className="p-8 text-center text-gray-500">Cargando trámites...</div>}>
+      <JustificacionesView />
+    </Suspense>
+  );
 }

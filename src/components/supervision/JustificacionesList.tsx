@@ -64,7 +64,7 @@ export const JustificacionesList: React.FC = () => {
   ) => {
     if (
       nuevoEstado === "A" &&
-      requiereDocumentoJustificativo(sol.motivoDesc || sol.codina) &&
+      requiereDocumentoJustificativo(sol.motivoDesc, sol.codina) &&
       !sol.documento
     ) {
       showToast(

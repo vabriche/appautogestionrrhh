@@ -1,4 +1,5 @@
 import "server-only";
+import { unstable_rethrow } from "next/navigation";
 import { api } from "@/lib/api";
 import type {
   ResumenVacaciones,
@@ -16,6 +17,7 @@ export const vacacionesService = {
       const data = await api.get<ResumenVacaciones>("/vacaciones/empleado/resumen");
       return { data };
     } catch (error) {
+      unstable_rethrow(error);
       console.error("Error en getResumen vacaciones:", error);
       return { data: null, error: (error as Error)?.message || "No se pudo obtener la licencia anual" };
     }
@@ -26,6 +28,7 @@ export const vacacionesService = {
       const rows = await api.get<TramoVacaciones[]>("/vacaciones/empleado/tramos");
       return Array.isArray(rows) ? rows : [];
     } catch (error) {
+      unstable_rethrow(error);
       console.error("Error en getMisTramos:", error);
       return [];
     }
@@ -36,6 +39,7 @@ export const vacacionesService = {
       const res = await api.post<PrepararPedidoResult>("/vacaciones/empleado/preparar", payload);
       return { ...res, motivos: res?.motivos ?? [] };
     } catch (error) {
+      unstable_rethrow(error);
       console.error("Error en prepararPedido:", error);
       return {
         dias: null,
@@ -55,6 +59,7 @@ export const vacacionesService = {
       const data = await api.post<RegistrarTramoResult>("/vacaciones/empleado/tramos", payload);
       return { ok: true, data };
     } catch (error) {
+      unstable_rethrow(error);
       console.error("Error en registrarTramo:", error);
       return { ok: false, error: (error as Error)?.message || "No se pudo registrar el pedido" };
     }
