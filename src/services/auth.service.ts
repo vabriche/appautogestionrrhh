@@ -2,6 +2,7 @@ import "server-only";
 import { cookies } from "next/headers";
 import { api, ApiError } from "@/lib/api";
 import { AUTH_COOKIE, USER_COOKIE } from "@/lib/config";
+import { normalizarEncargadoArea } from "@/lib/roles";
 import type {
   LoginRequest,
   LoginResponse,
@@ -40,7 +41,7 @@ export const authService = {
       apellido: String(agent.apellido ?? ""),
       condicion: Number(agent.condicion ?? 0),
       area: String(agent.area ?? ""),
-      encargadoArea: String(agent.encargado_area ?? "N"),
+      encargadoArea: normalizarEncargadoArea(agent.encargado_area),
     };
 
     return {
@@ -102,7 +103,7 @@ export const authService = {
       apellido: String(response.apellido ?? ""),
       condicion: Number(response.condicion ?? 0),
       area: String(response.area ?? ""),
-      encargadoArea: String(response.encargado_area ?? "N"),
+      encargadoArea: normalizarEncargadoArea(response.encargado_area),
     };
 
     return {

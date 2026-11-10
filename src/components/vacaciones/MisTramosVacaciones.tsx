@@ -3,7 +3,7 @@
 import React from "react";
 import type { TramoVacaciones } from "@/models";
 import {
-  ESTADOS_TRAMO,
+  estadoTramo,
   TIPOS_TRAMO,
   formatearFecha,
   textoMotivoNorma,
@@ -12,7 +12,13 @@ import {
 interface MisTramosVacacionesProps {
   tramos: TramoVacaciones[];
   loading: boolean;
+  onEditar?: (tramo: TramoVacaciones) => void;
 }
+
+// Las fechas se pueden cambiar mientras el jefe no dio el visto bueno y la licencia no empezó
+const hoyIso = () => new Date().toLocaleDateString("sv-SE");
+const esEditable = (t: TramoVacaciones) =>
+  t.estado === "pedido" && !t.vb_jefe_fecha && t.fecha_inicio > hoyIso();
 
 const MOTIVOS_INTERRUPCION: Record<string, string> = {
   enfermedad: "Enfermedad",
@@ -20,7 +26,7 @@ const MOTIVOS_INTERRUPCION: Record<string, string> = {
   otro: "Otro",
 };
 
-export const MisTramosVacaciones: React.FC<MisTramosVacacionesProps> = ({ tramos, loading }) => {
+export const MisTramosVacaciones: React.FC<MisTramosVacacionesProps> = ({ tramos, loading, onEditar }) => {
   if (loading) {
     return <p className="text-sm text-gray-500 text-center py-6">Cargando pedidos...</p>;
   }
@@ -36,7 +42,7 @@ export const MisTramosVacaciones: React.FC<MisTramosVacacionesProps> = ({ tramos
   return (
     <div className="space-y-3 w-full">
       {tramos.map((t) => {
-        const estado = ESTADOS_TRAMO[t.estado] ?? ESTADOS_TRAMO.pedido;
+        const estado = estadoTramo(t);
         const motivos = t.motivos_norma ? t.motivos_norma.split(",").filter(Boolean) : [];
         return (
           <div key={t.id} className="p-4 border border-gray-200 rounded-xl bg-white space-y-3">
@@ -47,9 +53,20 @@ export const MisTramosVacaciones: React.FC<MisTramosVacacionesProps> = ({ tramos
                   {TIPOS_TRAMO[t.tipo] ?? t.tipo}
                 </span>
               </div>
-              <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${estado.className}`}>
-                {estado.label}
-              </span>
+              <div className="flex items-center gap-2">
+                {onEditar && esEditable(t) && (
+                  <button
+                    type="button"
+                    onClick={() => onEditar(t)}
+                    className="text-xs font-semibold text-fce-maroon hover:underline cursor-pointer"
+                  >
+                    Cambiar fechas
+                  </button>
+                )}
+                <span className={`text-xs font-semibold px-2.5 py-0.5 rounded-full border ${estado.className}`}>
+                  {estado.label}
+                </span>
+              </div>
             </div>
 
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-sm">
@@ -82,6 +99,11 @@ export const MisTramosVacaciones: React.FC<MisTramosVacacionesProps> = ({ tramos
               </p>
             )}
             {t.observacion && <p className="text-xs text-gray-600">Observación: {t.observacion}</p>}
+            {t.estado === "pedido" && t.vb_jefe_fecha && (
+              <p className="text-xs text-gray-500">
+                Para cambiar las fechas, tu jefe tiene que quitar el visto bueno.
+              </p>
+            )}
             {t.motivo_autoriz && (
               <p className="text-xs text-gray-600">
                 {t.estado === "rechazado" ? "Motivo del rechazo" : "Autorización"}: {t.motivo_autoriz}

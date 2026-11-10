@@ -11,6 +11,7 @@ import {
   MdDescription,
 } from "react-icons/md";
 import { logoutAction, getAuthUserAction } from "@/controllers/auth.controller";
+import { esEncargado } from "@/lib/roles";
 import type { AuthUser } from "@/models";
 
 interface SubNavItem {
@@ -38,8 +39,8 @@ const navDropdowns: NavDropdownSection[] = [
     icon: <MdSupervisorAccount size={18} />,
     roles: ["encargado"],
     items: [
-      { name: "Área Asistencia", path: "/supervision/personal" },
-      { name: "Justificaciones", path: "/supervision/justificaciones" }
+      { name: "Asistencia por Area", path: "/supervision/personal" },
+      { name: "Licencias y Justificaciones", path: "/supervision/justificaciones" }
     ],
   },
   {
@@ -53,11 +54,11 @@ const navDropdowns: NavDropdownSection[] = [
   },
   {
     id: "tramites",
-    name: "Trámites RRHH",
+    name: "Trámites Dir.Personal",
     icon: <MdDescription size={18} />,
     items: [
-      { name: "Justificar Inasistencias", path: "/tramites" },
-      { name: "Licencia Anual (Vacaciones)", path: "/tramites/vacaciones" },
+      { name: "Solicitud Justificación Inasistencia", path: "/tramites" },
+      { name: "Pedido Licencia Anual (Vacaciones)", path: "/tramites/vacaciones" },
     ],
   },
 ];
@@ -108,10 +109,7 @@ const Sidebar: React.FC<SidebarProps> = ({ setIsSideBarOpen }) => {
   };
 
   const visibleSections = navDropdowns.filter((section) => {
-    if (
-      section.id === "supervision" &&
-      (!user?.encargadoArea || user.encargadoArea === "N")
-    ) {
+    if (section.id === "supervision" && !esEncargado(user?.encargadoArea)) {
       return false;
     }
     return true;

@@ -28,6 +28,15 @@ export interface MarcacionHoy {
 export interface AsistenciaVirtualEstado {
   esPeriodoHabilitado: boolean;
   esPeriodoReal: boolean;
+  // Ventana del receso vigente o del próximo (periodo_vacaciones): desde ventana_desde hasta el día
+  // anterior a reintegro_general. Fechas aaaa-mm-dd; null si no hay periodo cargado.
+  periodoVirtual?: {
+    activo: boolean;
+    periodo: number | null;
+    desde: string | null;
+    hasta: string | null;
+    reintegro: string | null;
+  };
   fechaHoy: string;
   horaActual: string;
   estado: "FUERA_DE_TURNO" | "EN_CURSO";

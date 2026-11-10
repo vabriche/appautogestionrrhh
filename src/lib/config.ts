@@ -16,6 +16,6 @@ export const AUTH_COOKIE = "fce_token";
 /** Cookie con datos básicos del agente autenticado para la UI. */
 export const USER_COOKIE = "fce_user";
 
-/** Duración de la sesión en segundos (24 horas). */
-export const SESSION_MAX_AGE = 60 * 60 * 24;
+/** Duración de la sesión en segundos: igual que el JWT del backend (expiresIn 8h). */
+export const SESSION_MAX_AGE = 60 * 60 * 8;
 

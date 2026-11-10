@@ -96,7 +96,7 @@ export const AsistenciaFilters: React.FC<AsistenciaFiltersProps> = ({
             <span className="text-sm text-gray-600 flex items-center gap-2">
               <MdAccessTime className="text-gray-500" /> Horas totales
             </span>
-            <span className="font-bold text-fce-maroon">{totalHoras} hs</span>
+            <span className="font-bold text-fce-maroon">{totalHoras}</span>
           </div>
           <div className="flex justify-between items-center">
             <span
@@ -109,7 +109,7 @@ export const AsistenciaFilters: React.FC<AsistenciaFiltersProps> = ({
             >
               <MdTrendingUp className="text-gray-500" /> Promedio de horas
             </span>
-            <span className="font-bold text-fce-maroon">{promedioHoras} hs</span>
+            <span className="font-bold text-fce-maroon">{promedioHoras}</span>
           </div>
         </div>
 

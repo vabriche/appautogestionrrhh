@@ -17,15 +17,18 @@ export const VacacionesView: React.FC = () => {
   const [activeTab, setActiveTab] = useState<"pedir" | "mis-pedidos">("pedir");
   const [resumen, setResumen] = useState<ResumenVacaciones | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [sinRegistro, setSinRegistro] = useState(false);
   const [tramos, setTramos] = useState<TramoVacaciones[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingTramos, setLoadingTramos] = useState(false);
+  const [tramoEditando, setTramoEditando] = useState<TramoVacaciones | null>(null);
 
   const loadResumen = async () => {
     setLoading(true);
     const res = await getResumenVacacionesAction();
     setResumen(res.data);
     setError(res.data ? null : res.error ?? "No se pudo obtener la licencia anual");
+    setSinRegistro(!!res.sinRegistro);
     setLoading(false);
   };
 
@@ -40,6 +43,7 @@ export const VacacionesView: React.FC = () => {
   }, []);
 
   const handleSuccess = () => {
+    setTramoEditando(null);
     loadResumen();
     loadTramos();
     setActiveTab("mis-pedidos");
@@ -60,6 +64,7 @@ export const VacacionesView: React.FC = () => {
           </button>
           <button
             onClick={() => {
+              setTramoEditando(null);
               loadTramos();
               setActiveTab("mis-pedidos");
             }}
@@ -76,7 +81,7 @@ export const VacacionesView: React.FC = () => {
           {activeTab === "pedir" && (
             <>
               {loading && <p className="text-sm text-gray-500 text-center py-6">Cargando datos...</p>}
-              {!loading && error && <FeedbackAlert type="error" message={error} />}
+              {!loading && error && <FeedbackAlert type={sinRegistro ? "info" : "error"} message={error} />}
               {!loading && resumen && (
                 <>
                   <ResumenVacacionesCard resumen={resumen} />
@@ -87,9 +92,18 @@ export const VacacionesView: React.FC = () => {
               )}
             </>
           )}
-          {activeTab === "mis-pedidos" && (
-            <MisTramosVacaciones tramos={tramos} loading={loadingTramos} />
-          )}
+          {activeTab === "mis-pedidos" &&
+            (tramoEditando && resumen ? (
+              <PedidoVacacionesForm
+                key={tramoEditando.id}
+                resumen={resumen}
+                tramoAEditar={tramoEditando}
+                onSuccess={handleSuccess}
+                onCancel={() => setTramoEditando(null)}
+              />
+            ) : (
+              <MisTramosVacaciones tramos={tramos} loading={loadingTramos} onEditar={setTramoEditando} />
+            ))}
         </div>
       </div>
     </div>

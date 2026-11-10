@@ -14,7 +14,7 @@ import {
   AsistenciaTable,
   AsistenciaInasistencias,
 } from "@/components/asistencia";
-import { horasADecimal } from "@/lib/horas";
+import { horasADecimal, formatearHorasMinutos } from "@/lib/horas";
 
 const AsistenciaView = () => {
   const [mounted, setMounted] = useState(false);
@@ -94,9 +94,9 @@ const AsistenciaView = () => {
   }, [fetchRegistros]);
 
   const totalHoras = useMemo(() => {
-    return registros
-      .reduce((acc, curr) => acc + horasADecimal(curr.horasT), 0)
-      .toFixed(2);
+    return formatearHorasMinutos(
+      registros.reduce((acc, curr) => acc + horasADecimal(curr.horasT), 0),
+    );
   }, [registros]);
 
   const diasTrabajados = useMemo(() => {
@@ -114,9 +114,9 @@ const AsistenciaView = () => {
         String(r.Hsalida).trim() !== "" &&
         horasADecimal(r.horasT) > 0
     );
-    if (validos.length === 0) return { promedioHoras: "0.00", cantDiasValidos: 0 };
+    if (validos.length === 0) return { promedioHoras: formatearHorasMinutos(0), cantDiasValidos: 0 };
     const suma = validos.reduce((acc, curr) => acc + horasADecimal(curr.horasT), 0);
-    const prom = (suma / validos.length).toFixed(2);
+    const prom = formatearHorasMinutos(suma / validos.length);
     return { promedioHoras: prom, cantDiasValidos: validos.length };
   }, [registros]);
 

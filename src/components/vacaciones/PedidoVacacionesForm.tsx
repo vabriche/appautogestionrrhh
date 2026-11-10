@@ -8,8 +8,10 @@ import type {
   PrepararPedidoResult,
   ResumenVacaciones,
   TipoTramo,
+  TramoVacaciones,
 } from "@/models";
 import {
+  modificarTramoVacacionesAction,
   prepararPedidoVacacionesAction,
   registrarTramoVacacionesAction,
 } from "@/controllers/vacaciones.controller";
@@ -24,6 +26,9 @@ import {
 interface PedidoVacacionesFormProps {
   resumen: ResumenVacaciones;
   onSuccess: () => void;
+  // Con un tramo, el formulario cambia las fechas de ese pedido (mismo periodo y tipo)
+  tramoAEditar?: TramoVacaciones;
+  onCancel?: () => void;
 }
 
 const MODOS: { value: ModoPedido; label: string }[] = [
@@ -42,28 +47,37 @@ const tiposDisponibles = (p?: PeriodoVacaciones): TipoTramo[] => {
 const inputClass =
   "h-11 px-3 border border-gray-300 rounded-lg bg-white text-gray-800 text-sm focus:ring-2 focus:ring-fce-gold focus:border-fce-gold outline-none";
 
-export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({ resumen, onSuccess }) => {
-  const periodosConSaldo = resumen.periodos.filter((p) => p.saldo > 0);
+export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({
+  resumen,
+  onSuccess,
+  tramoAEditar,
+  onCancel,
+}) => {
+  const editando = !!tramoAEditar;
+  // Al editar, el periodo del tramo puede no tener saldo libre (sus propios días ya cuentan)
+  const periodosConSaldo = editando
+    ? resumen.periodos.filter((p) => p.periodo === tramoAEditar.periodo)
+    : resumen.periodos.filter((p) => p.saldo > 0);
   const periodoInicial =
     periodosConSaldo.find((p) => p.sugerido) ?? periodosConSaldo[0];
 
   const [periodo, setPeriodo] = useState<number | null>(periodoInicial?.periodo ?? null);
-  const [tipo, setTipo] = useState<TipoTramo>("principal");
-  const [fechaInicio, setFechaInicio] = useState("");
+  const [tipo, setTipo] = useState<TipoTramo>(tramoAEditar?.tipo ?? "principal");
+  const [fechaInicio, setFechaInicio] = useState(tramoAEditar?.fecha_inicio ?? "");
   const [modo, setModo] = useState<ModoPedido>("fecha_reintegro");
-  const [valor, setValor] = useState("");
-  const [observacion, setObservacion] = useState("");
+  const [valor, setValor] = useState(tramoAEditar?.fecha_reintegro ?? "");
+  const [observacion, setObservacion] = useState(tramoAEditar?.observacion ?? "");
   const [prep, setPrep] = useState<PrepararPedidoResult | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const ultimaConsulta = useRef(0);
 
   const periodoSel = resumen.periodos.find((p) => p.periodo === periodo);
-  const tipos = tiposDisponibles(periodoSel);
+  const tipos = editando ? [tramoAEditar.tipo] : tiposDisponibles(periodoSel);
 
   // Al cambiar de periodo se precargan las fechas sugeridas (si no pidió la principal)
   useEffect(() => {
-    if (!periodoSel) return;
+    if (!periodoSel || editando) return;
     setTipo(tiposDisponibles(periodoSel)[0]);
     if (periodoSel.ventana_sugerida) {
       setFechaInicio(periodoSel.ventana_sugerida.inicio);
@@ -84,7 +98,12 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({ resu
       setPrep(null);
       return;
     }
-    const payload: PrepararPedidoPayload = { periodo, tipo, fecha_inicio: fechaInicio };
+    const payload: PrepararPedidoPayload = {
+      periodo,
+      tipo,
+      fecha_inicio: fechaInicio,
+      reemplaza: tramoAEditar?.id,
+    };
     if (modo === "dias") payload.dias = Number(valor);
     else payload[modo] = valor;
 
@@ -97,7 +116,7 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({ resu
       setIsPreparing(false);
     }, 350);
     return () => clearTimeout(timer);
-  }, [periodo, tipo, fechaInicio, modo, valor]);
+  }, [periodo, tipo, fechaInicio, modo, valor, tramoAEditar?.id]);
 
   const handleModoChange = (nuevo: ModoPedido) => {
     // Se conserva lo calculado para no obligar a cargar todo de nuevo
@@ -121,20 +140,25 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({ resu
 
     setIsSubmitting(true);
     // Se envían los días calculados por la base, no lo que se tipeó
-    const res = await registrarTramoVacacionesAction({
+    const datos = {
       periodo,
       tipo,
       fecha_inicio: fechaInicio,
       dias: prep.dias,
       observacion: observacion.trim() || null,
-    });
+    };
+    const res = tramoAEditar
+      ? await modificarTramoVacacionesAction(tramoAEditar.id, datos)
+      : await registrarTramoVacacionesAction(datos);
     setIsSubmitting(false);
 
     if (res.ok) {
       showToast(
-        res.data?.estado === "pedido"
-          ? "Pedido registrado. Queda pendiente de autorización."
-          : "Pedido de licencia registrado y aprobado.",
+        editando
+          ? "Fechas actualizadas. El pedido sigue pendiente de visto bueno del jefe."
+          : res.data?.estado === "pedido"
+            ? "Pedido registrado. Queda pendiente de visto bueno del jefe."
+            : "Pedido de licencia registrado y aprobado.",
         res.data?.estado === "pedido" ? "warning" : "success",
       );
       onSuccess();
@@ -156,7 +180,9 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({ resu
 
   return (
     <form onSubmit={handleSubmit} className="space-y-6 w-full">
-      <h2 className="text-xl font-bold text-gray-800">Registrar período de licencia</h2>
+      <h2 className="text-xl font-bold text-gray-800">
+        {editando ? "Cambiar fechas del pedido" : "Registrar período de licencia"}
+      </h2>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
         <div className="flex flex-col gap-2">
@@ -164,11 +190,12 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({ resu
           <select
             value={periodo ?? ""}
             onChange={(e) => setPeriodo(Number(e.target.value))}
+            disabled={editando}
             className={`${inputClass} bg-gray-50`}
           >
             {periodosConSaldo.map((p) => (
               <option key={p.periodo} value={p.periodo}>
-                {p.periodo} — saldo {p.saldo} días{p.sugerido ? " (sugerido)" : ""}
+                {editando ? p.periodo : `${p.periodo} — saldo ${p.saldo} días${p.sugerido ? " (sugerido)" : ""}`}
               </option>
             ))}
           </select>
@@ -179,6 +206,7 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({ resu
           <select
             value={tipo}
             onChange={(e) => setTipo(e.target.value as TipoTramo)}
+            disabled={editando}
             className={`${inputClass} bg-gray-50`}
           >
             {tipos.map((t) => (
@@ -209,6 +237,7 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({ resu
             <input
               type="date"
               value={fechaInicio}
+              min={new Date().toLocaleDateString("sv-SE")}
               onChange={(e) => setFechaInicio(e.target.value)}
               required
               className={inputClass}
@@ -307,14 +336,24 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({ resu
         />
       </div>
 
-      <div className="pt-2">
+      <div className="pt-2 flex flex-col sm:flex-row gap-3">
         <button
           type="submit"
           disabled={isSubmitting || !puedeConfirmar}
           className="w-full sm:w-auto px-8 py-3 bg-fce-maroon hover:bg-fce-maroon-dark text-white font-semibold rounded-lg transition-colors disabled:opacity-50"
         >
-          {isSubmitting ? "Registrando..." : "Confirmar pedido"}
+          {isSubmitting ? "Guardando..." : editando ? "Guardar cambios" : "Confirmar pedido"}
         </button>
+        {onCancel && (
+          <button
+            type="button"
+            onClick={onCancel}
+            disabled={isSubmitting}
+            className="w-full sm:w-auto px-8 py-3 border border-gray-300 text-gray-700 hover:bg-gray-50 font-semibold rounded-lg transition-colors disabled:opacity-50"
+          >
+            Volver
+          </button>
+        )}
       </div>
     </form>
   );

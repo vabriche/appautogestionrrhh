@@ -98,6 +98,10 @@ export const CrearSolicitudForm: React.FC<CrearSolicitudFormProps> = ({ onSucces
       showToast(errorLimiteCupo, "error");
       return;
     }
+    if (fechaInicio < getHoyLocalISO()) {
+      showToast("La fecha desde no puede ser anterior a la fecha del pedido.", "error");
+      return;
+    }
 
     setIsSubmitting(true);
 

@@ -139,39 +139,28 @@ export const SupervisionJustificacionesTable: React.FC<
                 {sol.estado === "A" && <span className="text-green-600">Aprobado</span>}
                 {sol.estado === "R" && <span className="text-red-600">Rechazado</span>}
                 {sol.estado === "C" && <span className="text-gray-500">Cancelado</span>}
+                {sol.estado === "G" && <span className="text-gray-500">Gestionado</span>}
+                {sol.estado === "D" && <span className="text-blue-600">Gestión parcial</span>}
               </td>
               <td className="px-4 py-3 text-center space-x-2">
-                {sol.estado === "P" && (() => {
-                  const necesitaDoc = requiereDocumentoJustificativo(sol.motivoDesc, sol.codina);
-                  const faltaDoc = necesitaDoc && !sol.documento;
-
-                  return (
-                    <div className="flex gap-2 justify-center">
-                      {faltaDoc ? (
-                        <button
-                          disabled
-                          title="No se puede aprobar: Requiere adjuntar documento justificativo"
-                          className="bg-gray-100 text-gray-400 cursor-not-allowed px-3 py-1 rounded text-xs font-semibold border border-gray-200"
-                        >
-                          Aceptar
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() => onAprobar(sol)}
-                          className="bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1 rounded text-xs font-semibold transition-colors"
-                        >
-                          Aceptar
-                        </button>
-                      )}
-                      <button
-                        onClick={() => onRechazar(sol)}
-                        className="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1 rounded text-xs font-semibold transition-colors"
-                      >
-                        Rechazar
-                      </button>
-                    </div>
-                  );
-                })()}
+                {/* Aceptar es la conformidad del supervisor: no exige el documento probatorio.
+                    El agente puede subirlo después; Dirección de Personal lo exige al gestionar. */}
+                {sol.estado === "P" && (
+                  <div className="flex gap-2 justify-center">
+                    <button
+                      onClick={() => onAprobar(sol)}
+                      className="bg-green-100 text-green-700 hover:bg-green-200 px-3 py-1 rounded text-xs font-semibold transition-colors"
+                    >
+                      Aceptar
+                    </button>
+                    <button
+                      onClick={() => onRechazar(sol)}
+                      className="bg-red-100 text-red-700 hover:bg-red-200 px-3 py-1 rounded text-xs font-semibold transition-colors"
+                    >
+                      Rechazar
+                    </button>
+                  </div>
+                )}
               </td>
             </tr>
           ))}

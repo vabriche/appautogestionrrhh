@@ -16,3 +16,14 @@ export function horasADecimal(valor: number | string | null | undefined): number
   const n = Number(texto.replace(",", "."));
   return isNaN(n) ? 0 : n;
 }
+
+/**
+ * Muestra horas decimales como horas y minutos: 6.5 -> "6 hs 30 min", 8 -> "8 hs", 0.75 -> "45 min".
+ */
+export function formatearHorasMinutos(horas: number): string {
+  const totalMin = Math.round((isNaN(horas) ? 0 : horas) * 60);
+  const h = Math.floor(totalMin / 60);
+  const m = totalMin % 60;
+  if (h === 0 && m > 0) return `${m} min`;
+  return m > 0 ? `${h} hs ${m} min` : `${h} hs`;
+}

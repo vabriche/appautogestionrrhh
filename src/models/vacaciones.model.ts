@@ -76,8 +76,20 @@ export interface TramoVacaciones {
   autorizado_por: number | null;
   fecha_autoriz: string | null;
   motivo_autoriz: string | null;
+  vb_jefe_por: number | null; // legajo del jefe que dio el visto bueno (o rechazó)
+  vb_jefe_fecha: string | null;
   creado: string;
   interrupciones: InterrupcionVacaciones[];
+}
+
+/** Acción del jefe sobre un pedido: dar el visto bueno, rechazarlo o quitar el visto bueno ya dado. */
+export type AccionJefeTramo = "aprobar" | "rechazar" | "quitar";
+
+/** Pedido de licencia anual visto desde la bandeja del jefe del área (GET /vacaciones/jefe/tramos). */
+export interface TramoJefe extends Omit<TramoVacaciones, "interrupciones" | "dias_corridos" | "fecha_autoriz"> {
+  legajo: number;
+  apellido: string | null;
+  area: string | null;
 }
 
 export interface PrepararPedidoPayload {
@@ -87,6 +99,7 @@ export interface PrepararPedidoPayload {
   dias?: number;
   ultimo_dia?: string;
   fecha_reintegro?: string;
+  reemplaza?: number; // id del pedido que se está editando: la simulación no lo cuenta
 }
 
 /** Simulación del tramo. `saldo` es el disponible antes del tramo; `error` es de negocio. */

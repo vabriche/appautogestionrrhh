@@ -1,15 +1,38 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { AUTH_COOKIE, USER_COOKIE } from "@/lib/config";
+import { esEncargado } from "@/lib/roles";
 
 // Rutas protegidas que requieren sesión activa
 const PROTECTED_PREFIXES = ["/asistencia", "/supervision", "/tramites", "/home"];
 
+// El JWT vencido (o ilegible) cuenta como sin sesión. Solo se lee el "exp" del payload: la firma la
+// verifica el backend. Sin esto, con la cookie viva y el token vencido, el backend responde 401, la app
+// manda a /login y este middleware la devolvía a /asistencia (la página "se abría y se cerraba").
+function tokenVencido(token: string): boolean {
+  try {
+    const payload = token.split(".")[1];
+    const json = atob(payload.replace(/-/g, "+").replace(/_/g, "/"));
+    const { exp } = JSON.parse(json) as { exp?: number };
+    return typeof exp === "number" && exp * 1000 <= Date.now();
+  } catch {
+    return true;
+  }
+}
+
+function sinSesion(response: NextResponse): NextResponse {
+  response.cookies.delete(AUTH_COOKIE);
+  response.cookies.delete(USER_COOKIE);
+  return response;
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
-  const token = request.cookies.get(AUTH_COOKIE)?.value;
+  const rawToken = request.cookies.get(AUTH_COOKIE)?.value;
+  const vencido = !!rawToken && tokenVencido(rawToken);
+  const token = vencido ? undefined : rawToken;
 
-  // 1. Redirigir a /login si no hay token en rutas protegidas
+  // 1. Redirigir a /login si no hay token (o venció) en rutas protegidas
   const isProtected = PROTECTED_PREFIXES.some(
     (prefix) => pathname === prefix || pathname.startsWith(prefix + "/")
   );
@@ -17,7 +40,13 @@ export function middleware(request: NextRequest) {
   if (isProtected && !token) {
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("redirect", pathname);
-    return NextResponse.redirect(loginUrl);
+    const response = NextResponse.redirect(loginUrl);
+    return vencido ? sinSesion(response) : response;
+  }
+
+  // Token vencido en una ruta pública (p. ej. /login): se deja pasar y se limpia la sesión
+  if (vencido) {
+    return sinSesion(NextResponse.next());
   }
 
   // 2. Si ya está autenticado e intenta ir a /login o a la raíz /, enviarlo a /asistencia
@@ -25,18 +54,17 @@ export function middleware(request: NextRequest) {
     return NextResponse.redirect(new URL("/asistencia", request.url));
   }
 
-  // 3. Control de acceso para supervisión (requiere rol de encargado)
+  // 3. Control de acceso para supervisión (requiere rol de encargado "S" o "T")
   if (token && pathname.startsWith("/supervision")) {
     const rawUser = request.cookies.get(USER_COOKIE)?.value;
-    if (rawUser) {
-      try {
-        const user = JSON.parse(decodeURIComponent(rawUser));
-        if (!user.encargadoArea || user.encargadoArea === "N") {
-          return NextResponse.redirect(new URL("/asistencia", request.url));
-        }
-      } catch {
-        // En caso de error parseando la cookie de usuario, continúa
-      }
+    let encargadoArea: unknown = null;
+    try {
+      encargadoArea = rawUser ? JSON.parse(decodeURIComponent(rawUser)).encargadoArea : null;
+    } catch {
+      // Cookie de usuario ilegible: se trata como agente sin cargo
+    }
+    if (!esEncargado(encargadoArea)) {
+      return NextResponse.redirect(new URL("/asistencia", request.url));
     }
   }
 

@@ -1,4 +1,4 @@
-import type { EstadoSaldo, EstadoTramo, TipoTramo } from "@/models";
+import type { EstadoSaldo, EstadoTramo, TipoTramo, TramoVacaciones } from "@/models";
 
 /** Textos para los códigos de excepción que devuelve la base (fuera de norma). */
 export const MOTIVOS_NORMA: Record<string, string> = {
@@ -26,6 +26,21 @@ export const ESTADOS_TRAMO: Record<EstadoTramo, { label: string; className: stri
   rechazado: { label: "Rechazado", className: "bg-red-50 text-red-700 border-red-200" },
   cancelado: { label: "Cancelado", className: "bg-gray-100 text-gray-600 border-gray-200" },
   gozado: { label: "Gozado", className: "bg-sky-50 text-sky-700 border-sky-200" },
+};
+
+type EstadoVisto = Pick<TramoVacaciones, "estado" | "vb_jefe_fecha" | "vb_jefe_por" | "autorizado_por">;
+
+/** Estado para mostrar, separando el paso del jefe (visto bueno) del de RRHH (autorización). */
+export const estadoTramo = (t: EstadoVisto): { label: string; className: string } => {
+  if (t.estado === "pedido") {
+    return t.vb_jefe_fecha
+      ? { label: "Con visto bueno, pendiente de RRHH", className: "bg-amber-50 text-amber-700 border-amber-200" }
+      : { label: "Pendiente de visto bueno del jefe", className: "bg-orange-50 text-orange-700 border-orange-200" };
+  }
+  if (t.estado === "rechazado" && t.vb_jefe_por && !t.autorizado_por) {
+    return { label: "Rechazado por el jefe", className: ESTADOS_TRAMO.rechazado.className };
+  }
+  return ESTADOS_TRAMO[t.estado] ?? ESTADOS_TRAMO.pedido;
 };
 
 export const ESTADOS_SALDO: Record<EstadoSaldo, { label: string; className: string }> = {

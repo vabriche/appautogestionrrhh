@@ -3,6 +3,7 @@
 import React from "react";
 import type { MarcacionHoy } from "@/models";
 import { MdHistory } from "react-icons/md";
+import { formatearHorasMinutos } from "@/lib/horas";
 
 interface AsistenciaVirtualTableProps {
   registros: MarcacionHoy[];
@@ -10,9 +11,9 @@ interface AsistenciaVirtualTableProps {
 
 export const AsistenciaVirtualTable: React.FC<AsistenciaVirtualTableProps> = React.memo(
   ({ registros }) => {
-    const totalHorasHoy = registros
-      .reduce((acc, r) => acc + (r.cantidadHoras ? Number(r.cantidadHoras) : 0), 0)
-      .toFixed(2);
+    const totalHorasHoy = formatearHorasMinutos(
+      registros.reduce((acc, r) => acc + (r.cantidadHoras ? Number(r.cantidadHoras) : 0), 0),
+    );
 
     return (
       <div className="bg-white rounded-2xl shadow-sm border border-fce-gold/25 overflow-hidden">
@@ -23,7 +24,7 @@ export const AsistenciaVirtualTable: React.FC<AsistenciaVirtualTableProps> = Rea
           </div>
           {registros.length > 0 && (
             <span className="text-xs font-semibold text-fce-maroon bg-fce-cream/60 px-2.5 py-1 rounded-md border border-fce-gold/30">
-              Total hoy: {totalHorasHoy} hs
+              Total hoy: {totalHorasHoy}
             </span>
           )}
         </div>
@@ -64,7 +65,7 @@ export const AsistenciaVirtualTable: React.FC<AsistenciaVirtualTableProps> = Rea
                         )}
                       </td>
                       <td className="px-6 py-3.5 font-semibold text-fce-maroon">
-                        {enCurso ? "—" : `${Number(reg.cantidadHoras || 0).toFixed(2)} hs`}
+                        {enCurso ? "—" : formatearHorasMinutos(Number(reg.cantidadHoras || 0))}
                       </td>
                       <td className="px-6 py-3.5">
                         <span className="inline-flex items-center text-xs font-semibold text-blue-700 bg-blue-50 border border-blue-200 px-2 py-0.5 rounded">

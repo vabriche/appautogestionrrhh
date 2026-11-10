@@ -20,6 +20,9 @@ const formatearFechaVista = (isoStr: string): string => {
   return isoStr;
 };
 
+// El pedido no puede empezar antes del día en que se hace (el backend también lo controla)
+const hoyIso = () => new Date().toLocaleDateString("sv-SE");
+
 export const PeriodoFechasSelector: React.FC<PeriodoFechasSelectorProps> = ({
   fechaInicio,
   fechaFin,
@@ -52,6 +55,7 @@ export const PeriodoFechasSelector: React.FC<PeriodoFechasSelectorProps> = ({
           <input
             type="date"
             value={fechaInicio}
+            min={hoyIso()}
             onChange={(e) => handleInicio(e.target.value)}
             required
             className="h-11 px-3 border border-gray-300 rounded-lg bg-white text-gray-800 text-sm focus:ring-2 focus:ring-fce-gold focus:border-fce-gold outline-none"

@@ -9,7 +9,6 @@ import {
 } from "@/controllers/justificaciones.controller";
 import { getAuthUserAction } from "@/controllers/auth.controller";
 import { showToast, ConfirmModal } from "@/components/ui";
-import { requiereDocumentoJustificativo } from "@/lib/motivosDoc";
 import { SupervisionJustificacionesFilters } from "./SupervisionJustificacionesFilters";
 import { SupervisionJustificacionesTable } from "./SupervisionJustificacionesTable";
 
@@ -62,17 +61,6 @@ export const JustificacionesList: React.FC = () => {
     sol: SolicitudJustificacion,
     nuevoEstado: "A" | "R"
   ) => {
-    if (
-      nuevoEstado === "A" &&
-      requiereDocumentoJustificativo(sol.motivoDesc, sol.codina) &&
-      !sol.documento
-    ) {
-      showToast(
-        "No se puede aprobar: Esta solicitud requiere adjuntar justificativo documental y aún no ha sido presentado.",
-        "warning"
-      );
-      return;
-    }
     setConfirmModal({ isOpen: true, solicitudId: sol.id, nuevoEstado });
   };
 

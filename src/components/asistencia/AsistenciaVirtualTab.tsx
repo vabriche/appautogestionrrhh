@@ -18,6 +18,7 @@ import {
   MdLock,
 } from "react-icons/md";
 import { Spinner } from "@heroui/react";
+import { formatearFecha } from "@/lib/vacaciones";
 
 interface AsistenciaVirtualTabProps {
   user?: AuthUser | null;
@@ -89,7 +90,9 @@ export const AsistenciaVirtualTab: React.FC<AsistenciaVirtualTabProps> = () => {
   const handleMarcar = async () => {
     if (!data?.esPeriodoHabilitado) {
       showToast(
-        "La asistencia virtual solo está habilitada del 21 de diciembre al 1 de febrero.",
+        data?.periodoVirtual?.desde
+          ? `La asistencia virtual solo está habilitada del ${formatearFecha(data.periodoVirtual.desde)} al ${formatearFecha(data.periodoVirtual.hasta)}.`
+          : "La asistencia virtual solo está habilitada durante el receso de vacaciones.",
         "warning"
       );
       return;
@@ -141,9 +144,16 @@ export const AsistenciaVirtualTab: React.FC<AsistenciaVirtualTabProps> = () => {
               Período de Asistencia Virtual Inactivo
             </h2>
             <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
-              La marcación virtual se habilita únicamente durante el receso vacacional, comprendido entre el{" "}
-              <span className="font-semibold">21 de diciembre</span> y el{" "}
-              <span className="font-semibold">1 de febrero</span>. Fuera de este período, el registro se realiza mediante los dispositivos biométricos habituales.
+              La marcación virtual se habilita únicamente durante el receso vacacional
+              {data.periodoVirtual?.desde ? (
+                <>
+                  , del <span className="font-semibold">{formatearFecha(data.periodoVirtual.desde)}</span> al{" "}
+                  <span className="font-semibold">{formatearFecha(data.periodoVirtual.hasta)}</span>
+                </>
+              ) : (
+                " (todavía no hay un periodo de vacaciones cargado)"
+              )}
+              . Fuera de este período, el registro se realiza mediante los dispositivos biométricos habituales.
             </p>
           </div>
         </div>
@@ -159,7 +169,8 @@ export const AsistenciaVirtualTab: React.FC<AsistenciaVirtualTabProps> = () => {
               Período de Receso Vacacional Activo
             </h2>
             <p className="text-xs text-emerald-700">
-              La asistencia virtual se encuentra habilitada para registrar tu jornada laboral remota.
+              La asistencia virtual se encuentra habilitada para registrar tu jornada laboral remota
+              {data.periodoVirtual?.hasta && ` hasta el ${formatearFecha(data.periodoVirtual.hasta)}`}.
             </p>
           </div>
         </div>

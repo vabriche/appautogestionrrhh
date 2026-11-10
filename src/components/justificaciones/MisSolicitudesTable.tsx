@@ -42,7 +42,17 @@ const formatearFechaVista = (isoStr?: string | null): string => {
   return isoStr;
 };
 
-const puedeCancelar = (sol: SolicitudJustificacion): boolean => {
+// El documento se sube o se reemplaza con la solicitud pendiente, aceptada (la aceptación del
+// supervisor es solo conformidad: el comprobante puede llegar después) o en gestión parcial
+// (Dirección de Personal la cargó como pendiente porque falta el comprobante). El backend aplica
+// la misma regla.
+const documentoEditable = (sol: SolicitudJustificacion): boolean =>
+  sol.estado === "P" || sol.estado === "A" || sol.estado === "D";
+
+// Los mismos tipos que acepta el backend
+const ACCEPT_DOCUMENTO = ".pdf,.jpg,.jpeg,.png";
+
+const puedeCancelar =(sol: SolicitudJustificacion): boolean => {
   if (sol.estado !== "P" && sol.estado !== "A") return false;
 
   let fechaReferencia: Date | null = null;
@@ -91,7 +101,6 @@ export const MisSolicitudesTable: React.FC<MisSolicitudesTableProps> = ({
         <thead className="text-xs text-white uppercase bg-fce-maroon">
           <tr>
             <th className="px-4 py-4 font-semibold whitespace-nowrap">Fecha</th>
-            <th className="px-4 py-4 font-semibold">Tipo</th>
             <th className="px-4 py-4 font-semibold">Motivo</th>
             <th className="px-4 py-4 font-semibold">Período Solicitado</th>
             <th className="px-4 py-4 font-semibold">Observación</th>
@@ -105,9 +114,6 @@ export const MisSolicitudesTable: React.FC<MisSolicitudesTableProps> = ({
           {solicitudes.map((sol) => (
             <tr key={sol.id} className="hover:bg-gray-50/50">
               <td className="px-4 py-3 font-medium text-gray-800 whitespace-nowrap">{sol.fecha}</td>
-              <td className="px-4 py-3 text-gray-600 whitespace-nowrap">
-                {sol.tipo === "I" ? "Inasistencia" : "Licencia"}
-              </td>
               <td className="px-4 py-3 text-gray-600 min-w-[150px]">
                 {OBTENER_LABEL_MOTIVO(sol.codina) || sol.motivoDesc || sol.codina}
               </td>
@@ -172,24 +178,53 @@ export const MisSolicitudesTable: React.FC<MisSolicitudesTableProps> = ({
               </td>
               <td className="px-4 py-3 text-center">
                 {sol.documento ? (
-                  <a
-                    href={`${API_URL}/${sol.documento.replace(/\\/g, "/")}`}
-                    target="_blank"
-                    rel="noreferrer"
-                    className="text-fce-maroon hover:underline font-medium text-xs"
-                  >
-                    Ver
-                  </a>
+                  <div className="flex flex-col items-center gap-1">
+                    <a
+                      href={`${API_URL}/${sol.documento.replace(/\\/g, "/")}`}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="text-fce-maroon hover:underline font-medium text-xs"
+                    >
+                      Ver
+                    </a>
+                    {/* Si subió un archivo equivocado, lo puede reemplazar hasta que Dirección de
+                        Personal termine la gestión */}
+                    {documentoEditable(sol) && (
+                      <label
+                        className="cursor-pointer text-gray-500 hover:text-fce-maroon text-[11px] underline"
+                        title="Reemplazar el documento subido"
+                      >
+                        Cambiar
+                        <input
+                          type="file"
+                          className="hidden"
+                          accept={ACCEPT_DOCUMENTO}
+                          onChange={(e) => {
+                            const archivo = e.target.files?.[0];
+                            e.target.value = "";
+                            if (
+                              archivo &&
+                              window.confirm(`¿Reemplazar el documento subido por "${archivo.name}"?`)
+                            ) {
+                              onUploadDoc(sol.id, archivo);
+                            }
+                          }}
+                        />
+                      </label>
+                    )}
+                  </div>
                 ) : requiereDocumentoJustificativo(sol.motivoDesc, sol.codina) ? (
-                  sol.estado === "P" ? (
+                  documentoEditable(sol) ? (
                     <label className="cursor-pointer text-fce-gold hover:text-yellow-600 font-medium text-xs underline">
                       Subir Doc
                       <input
                         type="file"
                         className="hidden"
-                        accept=".pdf,.jpg,.jpeg,.png,.doc,.docx"
+                        accept={ACCEPT_DOCUMENTO}
                         onChange={(e) => {
-                          if (e.target.files?.[0]) onUploadDoc(sol.id, e.target.files[0]);
+                          const archivo = e.target.files?.[0];
+                          e.target.value = "";
+                          if (archivo) onUploadDoc(sol.id, archivo);
                         }}
                       />
                     </label>
@@ -212,6 +247,13 @@ export const MisSolicitudesTable: React.FC<MisSolicitudesTableProps> = ({
                 {sol.estado === "A" && <span className="text-green-600">Aprobado</span>}
                 {sol.estado === "R" && <span className="text-red-600">Rechazado</span>}
                 {sol.estado === "C" && <span className="text-gray-500">Cancelado</span>}
+                {sol.estado === "G" && <span className="text-gray-500">Gestionado</span>}
+                {sol.estado === "D" && (
+                  <span className="text-blue-600" title="Dirección de Personal la cargó en forma parcial">
+                    Gestión parcial
+                  </span>
+                )}
+
               </td>
               <td className="px-4 py-3 text-center space-x-2">
                 {puedeCancelar(sol) ? (

@@ -10,6 +10,7 @@ import {
 import { FaRegUser } from "react-icons/fa";
 import { Button, Spinner } from "@heroui/react";
 import { resetPasswordAction } from "@/controllers/auth.controller";
+import { rutaInicio } from "@/lib/roles";
 import { showToast, FeedbackAlert } from "@/components/ui";
 
 interface ResetPasswordModalProps {
@@ -112,10 +113,7 @@ export const ResetPasswordModal: React.FC<ResetPasswordModalProps> = ({
           onSuccess();
         } else {
           // Redirige al destino según su rol (MVC)
-          const targetPath = result.data.encargadoArea
-            ? "/supervision/personal"
-            : "/asistencia";
-          router.push(targetPath);
+          router.push(rutaInicio(result.data.encargadoArea));
           router.refresh();
         }
       } else {

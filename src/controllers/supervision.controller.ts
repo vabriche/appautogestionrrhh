@@ -3,6 +3,7 @@
 import { supervisionService } from "@/services/supervision.service";
 import type { SupervisionRegistro } from "@/models";
 import { getAuthUserAction } from "./auth.controller";
+import { esEncargado } from "@/lib/roles";
 
 export async function getSupervisionRegistrosAction(
   area: string,
@@ -10,7 +11,7 @@ export async function getSupervisionRegistrosAction(
   fechaFin: string
 ): Promise<SupervisionRegistro[]> {
   const user = await getAuthUserAction();
-  if (!user || user.encargadoArea === "N") {
+  if (!user || !esEncargado(user.encargadoArea)) {
     return [];
   }
 

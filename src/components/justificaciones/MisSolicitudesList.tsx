@@ -99,7 +99,7 @@ export const MisSolicitudesList: React.FC<MisSolicitudesListProps> = ({ shouldRe
     formData.append("documento", file);
     const success = await subirDocumentoAction(id, formData);
     if (success) {
-      showToast("Documento subido con éxito", "success");
+      showToast("Documento guardado con éxito", "success");
       await loadSolicitudes();
     } else {
       showToast("Error al subir el documento", "error");

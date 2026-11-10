@@ -14,6 +14,7 @@ import {
 } from "react-icons/md";
 import { FaRegUser } from "react-icons/fa";
 import { loginAction } from "@/controllers/auth.controller";
+import { rutaInicio } from "@/lib/roles";
 import { showToast } from "@/components/ui";
 import { ResetPasswordModal, ChangePasswordModal } from "@/components/auth";
 
@@ -30,11 +31,7 @@ const LoginView = () => {
   useEffect(() => {
     if (state?.ok && state.data) {
       showToast("¡Bienvenido al sistema!", "success");
-      if (state.data.encargadoArea) {
-        router.push("/supervision/personal");
-      } else {
-        router.push("/asistencia");
-      }
+      router.push(rutaInicio(state.data.encargadoArea));
       router.refresh();
     } else if (state && !state.ok && state.error) {
       showToast(state.error, "danger");

@@ -48,6 +48,8 @@ export const SupervisionJustificacionesFilters: React.FC<
           <option value="A">Aceptadas</option>
           <option value="R">Rechazadas</option>
           <option value="C">Canceladas</option>
+          <option value="D">Gestión parcial</option>
+          <option value="G">Gestionadas</option>
           <option value="T">Todos los estados</option>
         </select>
       </div>

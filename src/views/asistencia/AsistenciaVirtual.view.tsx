@@ -38,7 +38,7 @@ const AsistenciaVirtualView = () => {
 
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white border border-fce-gold/30 text-xs font-semibold text-gray-700 shadow-xs self-start sm:self-auto">
             <MdCalendarToday size={14} className="text-fce-maroon" />
-            <span>Receso anual: 21 Dic — 1 Feb</span>
+            <span>Receso de vacaciones</span>
           </div>
         </div>
 

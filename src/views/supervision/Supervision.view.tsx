@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { getAuthUserAction } from "@/controllers/auth.controller";
 import type { AuthUser, SupervisionRegistro } from "@/models";
+import { esEncargado } from "@/lib/roles";
 import { getSupervisionRegistrosAction } from "@/controllers/supervision.controller";
 import { SupervisionFilters, SupervisionTable } from "@/components/supervision";
 import { AREAS_FCE } from "@/constants";
@@ -35,7 +36,7 @@ const SupervisionView = () => {
     getAuthUserAction().then((u) => {
       setUser(u);
       if (u) {
-        if (!u.encargadoArea || u.encargadoArea === "N") {
+        if (!esEncargado(u.encargadoArea)) {
           router.push("/asistencia");
         } else {
           // Si es S (solo su area), setea su area. Si es T, setea la primera de la lista por defecto.

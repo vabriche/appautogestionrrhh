@@ -7,6 +7,7 @@ import type {
   CrearSolicitudPayload,
 } from "@/models";
 import { getAuthUserAction } from "./auth.controller";
+import { esEncargado } from "@/lib/roles";
 
 export async function getMotivosAction(): Promise<Motivo[]> {
   const user = await getAuthUserAction();
@@ -22,7 +23,7 @@ export async function getMisSolicitudesAction(): Promise<SolicitudJustificacion[
 
 export async function getSupervisionSolicitudesAction(area?: string): Promise<SolicitudJustificacion[]> {
   const user = await getAuthUserAction();
-  if (!user || user.encargadoArea === "N") return [];
+  if (!user || !esEncargado(user.encargadoArea)) return [];
   
   // Si es titular y mandó un área, usar esa; si no, usar la de su usuario. Si es titular y mandó TODAS, usar TODAS.
   const queryArea = (user.encargadoArea === "T" && area) ? area : user.area;

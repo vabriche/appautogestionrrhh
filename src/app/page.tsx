@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { authService } from "@/services/auth.service";
+import { rutaInicio } from "@/lib/roles";
 
 export default async function RootPage() {
   const user = await authService.getCurrentUser();
@@ -8,9 +9,5 @@ export default async function RootPage() {
     redirect("/login");
   }
 
-  if (user.encargadoArea) {
-    redirect("/supervision/personal");
-  } else {
-    redirect("/asistencia");
-  }
+  redirect(rutaInicio(user.encargadoArea));
 }

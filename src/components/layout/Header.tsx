@@ -12,6 +12,7 @@ import { Button } from "@heroui/react";
 import { logoutAction, getAuthUserAction } from "@/controllers/auth.controller";
 import { getAlertaSalidaAction } from "@/controllers/asistencia.controller";
 import type { AuthUser } from "@/models";
+import { rutaInicio } from "@/lib/roles";
 
 const Header = () => {
   const router = useRouter();
@@ -128,11 +129,7 @@ const Header = () => {
         {/* Logo Institucional */}
         <button
           onClick={() =>
-            router.push(
-              user?.encargadoArea && user.encargadoArea !== "N"
-                ? "/supervision/personal"
-                : "/asistencia",
-            )
+            router.push(rutaInicio(user?.encargadoArea))
           }
           className="flex items-center h-2/3 bg-fce-cream-light rounded-xl px-5 shadow-sm hover:shadow-md hover:scale-[1.02] transition-all cursor-pointer"
           aria-label="Ir al inicio"
