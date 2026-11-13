@@ -6,7 +6,7 @@ import { getTramosJefeAction, vistoBuenoTramoAction } from "@/controllers/vacaci
 import { getAreasAction } from "@/controllers/justificaciones.controller";
 import { getAuthUserAction } from "@/controllers/auth.controller";
 import { showToast, ConfirmModal } from "@/components/ui";
-import { estadoTramo, formatearFecha, textoMotivoNorma, TIPOS_TRAMO } from "@/lib/vacaciones";
+import { estadoTramo, formatearFecha, TIPOS_TRAMO } from "@/lib/vacaciones";
 
 // P: pedidos abiertos (sin visto bueno, o con visto bueno esperando a RRHH: ahí se puede quitar),
 // V: con visto bueno (pendiente de RRHH o ya resuelto), R: rechazados, T: todos
@@ -159,7 +159,6 @@ export const LicenciaAnualJefeList: React.FC = () => {
             <tbody className="divide-y divide-gray-100">
               {visibles.map((t) => {
                 const estado = estadoTramo(t);
-                const motivos = t.motivos_norma ? t.motivos_norma.split(",").filter(Boolean) : [];
                 const esPropio = user && String(user.legajo) === String(t.legajo);
                 return (
                   <tr key={t.id} className="hover:bg-gray-50 align-top">
@@ -182,11 +181,6 @@ export const LicenciaAnualJefeList: React.FC = () => {
                       <span className={`inline-block text-xs font-semibold px-2.5 py-0.5 rounded-full border ${estado.className}`}>
                         {estado.label}
                       </span>
-                      {motivos.length > 0 && (
-                        <p className="text-xs text-amber-700">
-                          Fuera de norma: {motivos.map(textoMotivoNorma).join(" · ")}
-                        </p>
-                      )}
                       {t.observacion && <p className="text-xs text-gray-600">Obs.: {t.observacion}</p>}
                       {t.estado === "rechazado" && t.motivo_autoriz && (
                         <p className="text-xs text-gray-600">Motivo: {t.motivo_autoriz}</p>

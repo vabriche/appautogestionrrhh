@@ -6,7 +6,6 @@ import {
   estadoTramo,
   TIPOS_TRAMO,
   formatearFecha,
-  textoMotivoNorma,
 } from "@/lib/vacaciones";
 
 interface MisTramosVacacionesProps {
@@ -43,7 +42,6 @@ export const MisTramosVacaciones: React.FC<MisTramosVacacionesProps> = ({ tramos
     <div className="space-y-3 w-full">
       {tramos.map((t) => {
         const estado = estadoTramo(t);
-        const motivos = t.motivos_norma ? t.motivos_norma.split(",").filter(Boolean) : [];
         return (
           <div key={t.id} className="p-4 border border-gray-200 rounded-xl bg-white space-y-3">
             <div className="flex flex-wrap items-center justify-between gap-2">
@@ -93,11 +91,6 @@ export const MisTramosVacaciones: React.FC<MisTramosVacacionesProps> = ({ tramos
               </div>
             </div>
 
-            {motivos.length > 0 && (
-              <p className="text-xs text-amber-700">
-                Fuera de norma: {motivos.map(textoMotivoNorma).join(" · ")}
-              </p>
-            )}
             {t.observacion && <p className="text-xs text-gray-600">Observación: {t.observacion}</p>}
             {t.estado === "pedido" && t.vb_jefe_fecha && (
               <p className="text-xs text-gray-500">

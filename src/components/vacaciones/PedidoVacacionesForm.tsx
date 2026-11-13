@@ -19,7 +19,6 @@ import {
   TIPOS_TRAMO,
   formatearFecha,
   formatearFechaConDia,
-  textoMotivoNorma,
 } from "@/lib/vacaciones";
 
 interface PedidoVacacionesFormProps {
@@ -32,7 +31,6 @@ interface PedidoVacacionesFormProps {
 
 // Fechas ISO (aaaa-mm-dd) en hora local
 const isoLocal = (d: Date) => d.toLocaleDateString("sv-SE");
-const diaSemana = (iso: string) => new Date(iso + "T00:00:00").getDay(); // 0 domingo … 6 sábado
 
 /** Primer lunes en o después de `iso` (y no antes de hoy). */
 const lunesDesde = (iso?: string | null): string => {
@@ -94,14 +92,11 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodo]);
 
-  // Las reglas de lunes, día hábil y días completos son solo del tramo principal;
-  // saldo y compensación se pueden tomar cualquier día y fraccionados
   const esPrincipal = tipo === "principal";
-  const finDeSemana = esPrincipal && !!fechaInicio && [0, 6].includes(diaSemana(fechaInicio));
 
   // Con cada cambio se simula el tramo en la base (no guarda nada)
   useEffect(() => {
-    if (!periodo || !fechaInicio || !dias || Number(dias) < 1 || finDeSemana) {
+    if (!periodo || !fechaInicio || !dias || Number(dias) < 1) {
       setPrep(null);
       return;
     }
@@ -122,34 +117,17 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({
       setIsPreparing(false);
     }, 350);
     return () => clearTimeout(timer);
-  }, [periodo, tipo, fechaInicio, dias, finDeSemana, tramoAEditar?.id]);
+  }, [periodo, tipo, fechaInicio, dias, tramoAEditar?.id]);
 
   // Saldo disponible para este pedido (la simulación ya descuenta el propio si se está editando)
   const saldoDisponible = prep?.saldo ?? periodoSel?.saldo ?? null;
-  // Avisos propios del formulario: también exigen observación
-  const avisos: string[] = [];
-  if (esPrincipal && fechaInicio && !finDeSemana && diaSemana(fechaInicio) !== 1) {
-    avisos.push("El día de comienzo debería ser un lunes.");
-  }
-  const menosDias = esPrincipal && saldoDisponible != null && Number(dias) > 0 && Number(dias) < saldoDisponible;
-  if (menosDias) {
-    avisos.push(`Estás tomando menos días de los que corresponden (${dias} de ${saldoDisponible}).`);
-  }
-  // PARCIAL (menos días en el principal) ya lo dice el aviso propio: no se repite
-  const motivosBase = (prep?.motivos ?? []).filter((m) => !(menosDias && m.trim() === "PARCIAL"));
-  const fueraDeNorma = motivosBase.length > 0;
-  const requiereObservacion = fueraDeNorma || avisos.length > 0;
-  const puedeConfirmar =
-    !!prep && !prep.error && !!prep.dias && !isPreparing && !finDeSemana &&
-    (!requiereObservacion || observacion.trim() !== "");
+  // Lo único que se controla es la cantidad de días contra el saldo (la base lo rechaza en
+  // prep.error). Fechas fuera de lo habitual se graban igual y la observación es siempre opcional.
+  const puedeConfirmar = !!prep && !prep.error && !!prep.dias && !isPreparing;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!periodo || !prep?.dias || prep.error) return;
-    if (requiereObservacion && !observacion.trim()) {
-      showToast("La observación es obligatoria para este pedido.", "error");
-      return;
-    }
 
     setIsSubmitting(true);
     // Se envían los días calculados por la base, no lo que se tipeó
@@ -279,10 +257,6 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({
           </div>
         </div>
 
-        {finDeSemana && (
-          <FeedbackAlert type="error" message="El tramo principal tiene que empezar un día hábil (lunes a viernes)." />
-        )}
-
         {/* Resultado de la simulación */}
         {isPreparing && <p className="text-xs text-gray-500">Calculando...</p>}
         {!isPreparing && prep?.error && <FeedbackAlert type="error" message={prep.error} />}
@@ -307,33 +281,17 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({
           </div>
         )}
 
-        {!isPreparing && prep && !prep.error && avisos.length > 0 && (
-          <FeedbackAlert
-            type="warning"
-            title="Indicá el motivo en la observación"
-            message={avisos.join(" ")}
-          />
-        )}
-
-        {!isPreparing && prep && !prep.error && fueraDeNorma && (
-          <FeedbackAlert
-            type="warning"
-            title="Pedido fuera de norma: requiere autorización"
-            message={motivosBase.map(textoMotivoNorma).join(" · ")}
-          />
-        )}
       </div>
 
       <div className="flex flex-col gap-2">
         <label className="text-sm font-semibold text-gray-700">
-          Observaciones {requiereObservacion ? <span className="text-red-500">*</span> : "(Opcional)"}
+          Observaciones (Opcional)
         </label>
         <textarea
           value={observacion}
           onChange={(e) => setObservacion(e.target.value)}
           maxLength={255}
-          required={requiereObservacion}
-          placeholder={requiereObservacion ? "Explicá el motivo..." : "Detalles adicionales..."}
+          placeholder="Detalles adicionales..."
           className="p-3 min-h-[90px] border border-gray-300 rounded-lg bg-gray-50 text-gray-800 text-sm focus:ring-2 focus:ring-fce-gold focus:border-fce-gold outline-none resize-y"
         />
       </div>
