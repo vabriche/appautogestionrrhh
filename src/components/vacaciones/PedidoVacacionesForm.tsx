@@ -2,7 +2,6 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import type {
-  ModoPedido,
   PeriodoVacaciones,
   PrepararPedidoPayload,
   PrepararPedidoResult,
@@ -31,11 +30,17 @@ interface PedidoVacacionesFormProps {
   onCancel?: () => void;
 }
 
-const MODOS: { value: ModoPedido; label: string }[] = [
-  { value: "fecha_reintegro", label: "Día de reintegro" },
-  { value: "ultimo_dia", label: "Último día" },
-  { value: "dias", label: "Cantidad de días" },
-];
+// Fechas ISO (aaaa-mm-dd) en hora local
+const isoLocal = (d: Date) => d.toLocaleDateString("sv-SE");
+const diaSemana = (iso: string) => new Date(iso + "T00:00:00").getDay(); // 0 domingo … 6 sábado
+
+/** Primer lunes en o después de `iso` (y no antes de hoy). */
+const lunesDesde = (iso?: string | null): string => {
+  const hoy = isoLocal(new Date());
+  const d = new Date(((iso && iso > hoy) ? iso : hoy) + "T00:00:00");
+  d.setDate(d.getDate() + ((8 - d.getDay()) % 7));
+  return isoLocal(d);
+};
 
 // Mientras no haya tramo principal solo se puede pedir ese; después, saldo o compensación.
 const tiposDisponibles = (p?: PeriodoVacaciones): TipoTramo[] => {
@@ -63,9 +68,13 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({
 
   const [periodo, setPeriodo] = useState<number | null>(periodoInicial?.periodo ?? null);
   const [tipo, setTipo] = useState<TipoTramo>(tramoAEditar?.tipo ?? "principal");
-  const [fechaInicio, setFechaInicio] = useState(tramoAEditar?.fecha_inicio ?? "");
-  const [modo, setModo] = useState<ModoPedido>("fecha_reintegro");
-  const [valor, setValor] = useState(tramoAEditar?.fecha_reintegro ?? "");
+  // Se carga solo el inicio (por defecto un lunes) y los días; último día y reintegro los calcula la base
+  const [fechaInicio, setFechaInicio] = useState(
+    tramoAEditar?.fecha_inicio ?? lunesDesde(periodoInicial?.ventana_sugerida?.inicio),
+  );
+  const [dias, setDias] = useState(
+    tramoAEditar ? String(tramoAEditar.dias_computados) : String(periodoInicial?.saldo ?? ""),
+  );
   const [observacion, setObservacion] = useState(tramoAEditar?.observacion ?? "");
   const [prep, setPrep] = useState<PrepararPedidoResult | null>(null);
   const [isPreparing, setIsPreparing] = useState(false);
@@ -75,26 +84,24 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({
   const periodoSel = resumen.periodos.find((p) => p.periodo === periodo);
   const tipos = editando ? [tramoAEditar.tipo] : tiposDisponibles(periodoSel);
 
-  // Al cambiar de periodo se precargan las fechas sugeridas (si no pidió la principal)
+  // Al cambiar de periodo: inicio el lunes sugerido y todos los días del saldo
   useEffect(() => {
     if (!periodoSel || editando) return;
     setTipo(tiposDisponibles(periodoSel)[0]);
-    if (periodoSel.ventana_sugerida) {
-      setFechaInicio(periodoSel.ventana_sugerida.inicio);
-      setModo("fecha_reintegro");
-      setValor(periodoSel.ventana_sugerida.reintegro);
-    } else {
-      setFechaInicio("");
-      setModo("dias");
-      setValor(String(periodoSel.saldo));
-    }
+    setFechaInicio(lunesDesde(periodoSel.ventana_sugerida?.inicio));
+    setDias(String(periodoSel.saldo));
     setObservacion("");
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [periodo]);
 
+  // Las reglas de lunes, día hábil y días completos son solo del tramo principal;
+  // saldo y compensación se pueden tomar cualquier día y fraccionados
+  const esPrincipal = tipo === "principal";
+  const finDeSemana = esPrincipal && !!fechaInicio && [0, 6].includes(diaSemana(fechaInicio));
+
   // Con cada cambio se simula el tramo en la base (no guarda nada)
   useEffect(() => {
-    if (!periodo || !fechaInicio || !valor) {
+    if (!periodo || !fechaInicio || !dias || Number(dias) < 1 || finDeSemana) {
       setPrep(null);
       return;
     }
@@ -102,10 +109,9 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({
       periodo,
       tipo,
       fecha_inicio: fechaInicio,
+      dias: Number(dias),
       reemplaza: tramoAEditar?.id,
     };
-    if (modo === "dias") payload.dias = Number(valor);
-    else payload[modo] = valor;
 
     const consulta = ++ultimaConsulta.current;
     setIsPreparing(true);
@@ -116,25 +122,32 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({
       setIsPreparing(false);
     }, 350);
     return () => clearTimeout(timer);
-  }, [periodo, tipo, fechaInicio, modo, valor, tramoAEditar?.id]);
+  }, [periodo, tipo, fechaInicio, dias, finDeSemana, tramoAEditar?.id]);
 
-  const handleModoChange = (nuevo: ModoPedido) => {
-    // Se conserva lo calculado para no obligar a cargar todo de nuevo
-    setModo(nuevo);
-    if (nuevo === "dias") setValor(prep?.dias ? String(prep.dias) : "");
-    else if (nuevo === "ultimo_dia") setValor(prep?.ultimo_dia ?? "");
-    else setValor(prep?.fecha_reintegro ?? "");
-  };
-
-  const fueraDeNorma = (prep?.motivos.length ?? 0) > 0;
+  // Saldo disponible para este pedido (la simulación ya descuenta el propio si se está editando)
+  const saldoDisponible = prep?.saldo ?? periodoSel?.saldo ?? null;
+  // Avisos propios del formulario: también exigen observación
+  const avisos: string[] = [];
+  if (esPrincipal && fechaInicio && !finDeSemana && diaSemana(fechaInicio) !== 1) {
+    avisos.push("El día de comienzo debería ser un lunes.");
+  }
+  const menosDias = esPrincipal && saldoDisponible != null && Number(dias) > 0 && Number(dias) < saldoDisponible;
+  if (menosDias) {
+    avisos.push(`Estás tomando menos días de los que corresponden (${dias} de ${saldoDisponible}).`);
+  }
+  // PARCIAL (menos días en el principal) ya lo dice el aviso propio: no se repite
+  const motivosBase = (prep?.motivos ?? []).filter((m) => !(menosDias && m.trim() === "PARCIAL"));
+  const fueraDeNorma = motivosBase.length > 0;
+  const requiereObservacion = fueraDeNorma || avisos.length > 0;
   const puedeConfirmar =
-    !!prep && !prep.error && !!prep.dias && !isPreparing && (!fueraDeNorma || observacion.trim() !== "");
+    !!prep && !prep.error && !!prep.dias && !isPreparing && !finDeSemana &&
+    (!requiereObservacion || observacion.trim() !== "");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!periodo || !prep?.dias || prep.error) return;
-    if (fueraDeNorma && !observacion.trim()) {
-      showToast("El pedido está fuera de norma: la observación es obligatoria.", "error");
+    if (requiereObservacion && !observacion.trim()) {
+      showToast("La observación es obligatoria para este pedido.", "error");
       return;
     }
 
@@ -237,57 +250,38 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({
             <input
               type="date"
               value={fechaInicio}
-              min={new Date().toLocaleDateString("sv-SE")}
               onChange={(e) => setFechaInicio(e.target.value)}
               required
               className={inputClass}
             />
+            {fechaInicio && (
+              <span className="text-[11px] text-gray-500">{formatearFechaConDia(fechaInicio)}</span>
+            )}
           </div>
 
           <div className="flex flex-col gap-1.5">
-            <label className="text-xs font-semibold text-gray-600">Indicar por</label>
-            <div className="flex rounded-lg border border-gray-300 overflow-hidden h-11">
-              {MODOS.map((m) => (
-                <button
-                  key={m.value}
-                  type="button"
-                  onClick={() => handleModoChange(m.value)}
-                  className={`flex-1 text-xs font-medium px-2 transition-colors ${
-                    modo === m.value ? "bg-fce-maroon text-white" : "bg-white text-gray-600 hover:bg-gray-50"
-                  }`}
-                >
-                  {m.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        <div className="flex flex-col gap-1.5 sm:max-w-[calc(50%-0.5rem)]">
-          <label className="text-xs font-semibold text-gray-600">
-            {MODOS.find((m) => m.value === modo)?.label} <span className="text-red-500">*</span>
-          </label>
-          {modo === "dias" ? (
+            <label className="text-xs font-semibold text-gray-600">
+              Cantidad de días <span className="text-red-500">*</span>
+            </label>
             <input
               type="number"
               min={1}
-              max={periodoSel?.saldo}
-              value={valor}
-              onChange={(e) => setValor(e.target.value)}
+              max={saldoDisponible ?? undefined}
+              value={dias}
+              onChange={(e) => setDias(e.target.value)}
               required
               className={inputClass}
             />
-          ) : (
-            <input
-              type="date"
-              value={valor}
-              min={fechaInicio || undefined}
-              onChange={(e) => setValor(e.target.value)}
-              required
-              className={inputClass}
-            />
-          )}
+            {saldoDisponible != null && (
+              <span className="text-[11px] text-gray-500">{esPrincipal ? `Te corresponden ${saldoDisponible} días` : `Saldo disponible: ${saldoDisponible} días (se puede fraccionar)`}
+              </span>
+            )}
+          </div>
         </div>
+
+        {finDeSemana && (
+          <FeedbackAlert type="error" message="El tramo principal tiene que empezar un día hábil (lunes a viernes)." />
+        )}
 
         {/* Resultado de la simulación */}
         {isPreparing && <p className="text-xs text-gray-500">Calculando...</p>}
@@ -313,25 +307,33 @@ export const PedidoVacacionesForm: React.FC<PedidoVacacionesFormProps> = ({
           </div>
         )}
 
+        {!isPreparing && prep && !prep.error && avisos.length > 0 && (
+          <FeedbackAlert
+            type="warning"
+            title="Indicá el motivo en la observación"
+            message={avisos.join(" ")}
+          />
+        )}
+
         {!isPreparing && prep && !prep.error && fueraDeNorma && (
           <FeedbackAlert
             type="warning"
             title="Pedido fuera de norma: requiere autorización"
-            message={prep.motivos.map(textoMotivoNorma).join(" · ")}
+            message={motivosBase.map(textoMotivoNorma).join(" · ")}
           />
         )}
       </div>
 
       <div className="flex flex-col gap-2">
         <label className="text-sm font-semibold text-gray-700">
-          Observaciones {fueraDeNorma ? <span className="text-red-500">*</span> : "(Opcional)"}
+          Observaciones {requiereObservacion ? <span className="text-red-500">*</span> : "(Opcional)"}
         </label>
         <textarea
           value={observacion}
           onChange={(e) => setObservacion(e.target.value)}
           maxLength={255}
-          required={fueraDeNorma}
-          placeholder={fueraDeNorma ? "Explicá el motivo de la excepción..." : "Detalles adicionales..."}
+          required={requiereObservacion}
+          placeholder={requiereObservacion ? "Explicá el motivo..." : "Detalles adicionales..."}
           className="p-3 min-h-[90px] border border-gray-300 rounded-lg bg-gray-50 text-gray-800 text-sm focus:ring-2 focus:ring-fce-gold focus:border-fce-gold outline-none resize-y"
         />
       </div>

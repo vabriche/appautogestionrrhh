@@ -1,10 +1,16 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import localFont from "next/font/local";
 import Header from "@/components/layout/Header";
 import { Providers } from "@/components/providers/Providers";
 import "./globals.css";
 
-const inter = Inter({ subsets: ["latin"] });
+// Inter servida desde el proyecto (subset latin, variable 100–900): el build no depende de
+// conectarse a Google Fonts
+const inter = localFont({
+  src: "./fonts/Inter-latin.woff2",
+  weight: "100 900",
+  display: "swap",
+});
 
 export const metadata: Metadata = {
   title: "FCE - Asistencia y Supervisión",

@@ -23,20 +23,25 @@ const getHoyLocalISO = (): string => {
   return `${year}-${month}-${day}`;
 };
 
+// Días hábiles del período: no cuenta sábados ni domingos (el backend calcula lo mismo)
 const calcularDias = (inicio: string, fin: string): number => {
-  if (!inicio || !fin) return 1;
-  const d1 = new Date(inicio + "T00:00:00");
-  const d2 = new Date(fin + "T00:00:00");
-  const diffTime = d2.getTime() - d1.getTime();
-  if (diffTime < 0) return 1;
-  return Math.round(diffTime / (1000 * 60 * 60 * 24)) + 1;
+  if (!inicio || !fin || fin < inicio) return 1;
+  const d = new Date(inicio + "T00:00:00");
+  const hasta = new Date(fin + "T00:00:00");
+  let dias = 0;
+  while (d <= hasta) {
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) dias++;
+    d.setDate(d.getDate() + 1);
+  }
+  return dias;
 };
 
 export const CrearSolicitudForm: React.FC<CrearSolicitudFormProps> = ({ onSuccess }) => {
   const [motivos, setMotivos] = useState<Motivo[]>([]);
   const [codina, setCodina] = useState<string>("");
   const [tipo, setTipo] = useState<"I" | "L">("I");
-  const [comunico, setComunico] = useState<"S" | "N">("S");
+  const [comunico, setComunico] = useState<"S" | "N">("N");
   const [observacion, setObservacion] = useState("");
   const [fechaInicio, setFechaInicio] = useState(getHoyLocalISO());
   const [fechaFin, setFechaFin] = useState(getHoyLocalISO());
@@ -49,6 +54,7 @@ export const CrearSolicitudForm: React.FC<CrearSolicitudFormProps> = ({ onSucces
   const cantDias = calcularDias(fechaInicio, fechaFin);
 
   const errorLimiteCupo = (() => {
+    if (cantDias === 0) return "El período elegido no incluye días hábiles (solo sábado y/o domingo).";
     if (!reglaActiva || !reglaActiva.maxPorSolicitud) return null;
     if (cantDias > reglaActiva.maxPorSolicitud) {
       if (reglaActiva.tipo === "ESTUDIO") {
@@ -98,10 +104,6 @@ export const CrearSolicitudForm: React.FC<CrearSolicitudFormProps> = ({ onSucces
       showToast(errorLimiteCupo, "error");
       return;
     }
-    if (fechaInicio < getHoyLocalISO()) {
-      showToast("La fecha desde no puede ser anterior a la fecha del pedido.", "error");
-      return;
-    }
 
     setIsSubmitting(true);
 
@@ -131,6 +133,7 @@ export const CrearSolicitudForm: React.FC<CrearSolicitudFormProps> = ({ onSucces
       }
       setFechaInicio(getHoyLocalISO());
       setFechaFin(getHoyLocalISO());
+      setComunico("N");
       setObservacion("");
       setFile(null);
       onSuccess();

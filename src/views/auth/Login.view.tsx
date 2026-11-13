@@ -9,21 +9,19 @@ import {
   MdArrowForward,
   MdVisibilityOff,
   MdVisibility,
-  MdVpnKey,
   MdLockReset,
 } from "react-icons/md";
 import { FaRegUser } from "react-icons/fa";
 import { loginAction } from "@/controllers/auth.controller";
 import { rutaInicio } from "@/lib/roles";
 import { showToast } from "@/components/ui";
-import { ResetPasswordModal, ChangePasswordModal } from "@/components/auth";
+import { ResetPasswordModal } from "@/components/auth";
 
 const LoginView = () => {
   const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [legajoInput, setLegajoInput] = useState("");
   const [isResetModalOpen, setIsResetModalOpen] = useState(false);
-  const [isChangePasswordModalOpen, setIsChangePasswordModalOpen] = useState(false);
   const [state, formAction, isPending] = useActionState(loginAction, null);
 
   const fieldErrors = state && !state.ok ? state.fieldErrors : undefined;
@@ -171,8 +169,8 @@ const LoginView = () => {
               }
             </Button>
 
-            {/* Opciones de acceso: Restablecer o Cambiar contraseña */}
-            <div className="pt-2 flex flex-col sm:flex-row items-center justify-between gap-2 border-t border-gray-100 text-xs">
+            {/* Restablecer contraseña (cambiarla se hace desde el menú, ya logueado) */}
+            <div className="pt-2 flex items-center justify-center border-t border-gray-100 text-xs">
               <button
                 type="button"
                 onClick={() => setIsResetModalOpen(true)}
@@ -181,31 +179,16 @@ const LoginView = () => {
                 <MdLockReset size={16} className="text-fce-gold" />
                 <span>¿Olvidaste tu contraseña?</span>
               </button>
-
-              <button
-                type="button"
-                onClick={() => setIsChangePasswordModalOpen(true)}
-                className="text-fce-maroon hover:text-fce-maroon-mid font-medium hover:underline flex items-center gap-1.5 transition-colors cursor-pointer py-1"
-              >
-                <MdVpnKey size={14} className="text-fce-gold" />
-                <span>Cambiar contraseña</span>
-              </button>
             </div>
           </form>
         </div>
       </div>
 
-      {/* Modales de recuperación y cambio de clave */}
+      {/* Modal de recuperación de clave */}
       <ResetPasswordModal
         isOpen={isResetModalOpen}
         defaultLegajo={legajoInput}
         onClose={() => setIsResetModalOpen(false)}
-      />
-
-      <ChangePasswordModal
-        isOpen={isChangePasswordModalOpen}
-        defaultLegajo={legajoInput}
-        onClose={() => setIsChangePasswordModalOpen(false)}
       />
     </div>
   );
